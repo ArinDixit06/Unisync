@@ -2,6 +2,7 @@
 from app.db import init_db, fetch_all, execute
 from app.crypto import decrypt
 from app.services import gmail, outlook
+from app.config import settings
 
 
 async def main():
@@ -21,7 +22,7 @@ async def main():
             access_token = tokens.get("access_token")
             if access_token:
                 subscription = await outlook.create_subscription(
-                    access_token, "http://localhost:8000/webhooks/outlook"
+                    access_token, f"{settings.api_base_url}/webhooks/outlook"
                 )
                 await execute(
                     "UPDATE linked_accounts SET subscription_id=$1, subscription_expires_at=$2 WHERE id=$3",
