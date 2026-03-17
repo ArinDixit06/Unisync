@@ -1,0 +1,70 @@
+@import url("./tokens.css");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
+    line-height: 1.4;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-ui);
+    background: var(--color-bg-base);
+    color: var(--color-text-primary);
+    min-height: 100vh;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  input,
+  textarea {
+    font-family: inherit;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .fade-in {
+    animation: fadeIn var(--duration-slow) var(--ease-out);
+  }
+
+  .email-html img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .email-html a:not([style]) {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+
+  .email-html table {
+    max-width: 100%;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
