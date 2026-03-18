@@ -11,7 +11,8 @@ class Settings(BaseSettings):
 
     environment: str = "development"
     api_base_url: str = "https://unisync-pztl.onrender.com"
-    frontend_url: str = "https://unisync-pztl.onrender.com"
+    frontend_url: str = "https://unisync-five.vercel.app"
+    frontend_urls: str | None = Field(default=None, validation_alias="FRONTEND_URLS")
 
     database_url: str | None = None
     use_db: bool = Field(default=False, validation_alias="USE_DB")
@@ -45,6 +46,26 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def frontend_origins() -> list[str]:
+    candidates = [
+        settings.frontend_url,
+        "https://unisync-five.vercel.app",
+        "https://unisync-pztl.onrender.com",
+    ]
+    if settings.frontend_urls:
+        candidates.extend(settings.frontend_urls.split(","))
+
+    origins: list[str] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        origin = candidate.strip().rstrip("/")
+        if not origin or origin in seen:
+            continue
+        seen.add(origin)
+        origins.append(origin)
+    return origins
 
 
 def gmail_redirect() -> str:

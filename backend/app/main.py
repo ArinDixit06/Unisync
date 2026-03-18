@@ -9,14 +9,14 @@ from fastapi.exceptions import RequestValidationError
 from app.logging import configure_logging, get_logger
 from app.db import init_db, close_db
 from app.realtime_bus import listen_and_forward
-from app.config import settings
+from app.config import settings, frontend_origins
 from app.routers import health, auth, emails, compose, search, labels, calendar, webhooks, sync, realtime
 
 logger = get_logger()
 
 app = FastAPI(title="UniSync API", version="0.1.0")
 
-cors_origins = [settings.frontend_url]
+cors_origins = frontend_origins()
 
 app.add_middleware(
     CORSMiddleware,
