@@ -1,6 +1,8 @@
 ﻿import { useAuthStore } from "../stores/authStore"
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ""
+const DEFAULT_PRODUCTION_API_BASE_URL = "https://unisync-pztl.onrender.com"
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? DEFAULT_PRODUCTION_API_BASE_URL : "")
 
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const token = useAuthStore.getState().accessToken

@@ -9,6 +9,8 @@ import { useUIStore } from "../stores/uiStore"
 import { useAuthStore } from "../stores/authStore"
 import { supabase, supabaseConfigured } from "../lib/supabase"
 
+const DEFAULT_PRODUCTION_WS_URL = "wss://unisync-pztl.onrender.com"
+
 export function Dashboard() {
   const [composeOpen, setComposeOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
@@ -20,7 +22,9 @@ export function Dashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const resolvedWsBaseUrl =
     import.meta.env.VITE_WS_URL ||
-    `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`
+    (import.meta.env.PROD
+      ? DEFAULT_PRODUCTION_WS_URL
+      : `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`)
 
   const { data: accountsData } = useQuery({
     queryKey: ["accounts"],
