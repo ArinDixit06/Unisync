@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiFetch } from "../lib/api"
 import { AppShell, TopBar } from "../components/layout"
 import { ComposeButton, MailList, MailPreview } from "../components/mail-ui"
@@ -18,7 +18,8 @@ export function Dashboard() {
   const queryClient = useQueryClient()
   const syncHandledRef = useRef(false)
   const { setLinkedAccounts, accessToken, setUser, setAccessToken } = useAuthStore()
-  const { activeCategory, activeFilter, activeLabelId, selectedEmailId, sidebarOpen, setState } = useUIStore()
+  const { activeAccountId, activeCategory, activeFilter, activeLabelId, selectedEmailId, sidebarOpen, setState } =
+    useUIStore()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const resolvedWsBaseUrl =
     import.meta.env.VITE_WS_URL ||
@@ -43,6 +44,11 @@ export function Dashboard() {
       setLinkedAccounts(accountsData.accounts)
     }
   }, [accountsData, setLinkedAccounts])
+
+  useEffect(() => {
+    if (!activeAccountId || linkedAccounts.some((account: any) => account.id === activeAccountId)) return
+    setState({ activeAccountId: null, selectedEmailId: null })
+  }, [activeAccountId, linkedAccounts, setState])
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -95,14 +101,23 @@ export function Dashboard() {
   }, [accessToken, queryClient])
 
   const listParams = new URLSearchParams()
-  if (activeCategory && !["sent", "drafts", "trash"].includes(activeFilter)) listParams.set("category", activeCategory)
+  if (activeAccountId) listParams.set("account_id", activeAccountId)
+  if (activeCategory !== "all" && !["sent", "drafts", "trash"].includes(activeFilter)) {
+    listParams.set("category", activeCategory)
+  }
   if (activeFilter !== "all" && activeFilter !== "drafts") listParams.set("filter", activeFilter)
   if (activeLabelId) listParams.set("label_id", activeLabelId)
-  const listPath = `/emails${listParams.toString() ? `?${listParams.toString()}` : ""}`
 
-  const { data: emailsData } = useQuery({
-    queryKey: ["emails", activeCategory, activeFilter, activeLabelId],
-    queryFn: () => apiFetch(listPath),
+  const { data: emailsData, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey: ["emails", activeAccountId, activeCategory, activeFilter, activeLabelId],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) => {
+      const pageParams = new URLSearchParams(listParams)
+      pageParams.set("limit", "100")
+      pageParams.set("offset", String(pageParam))
+      return apiFetch(`/emails?${pageParams.toString()}`)
+    },
+    getNextPageParam: (lastPage: any) => lastPage?.next_offset ?? undefined,
     enabled: activeFilter !== "drafts"
   })
 
@@ -125,7 +140,7 @@ export function Dashboard() {
           provider: "drafts",
           account_email: ""
         }))
-      : emailsData?.emails || []
+      : emailsData?.pages?.flatMap((page: any) => page.emails || []) || []
 
   const { data: emailDetail } = useQuery({
     queryKey: ["email", selectedEmailId],
@@ -205,11 +220,13 @@ export function Dashboard() {
   }
 
   const handleSync = async () => {
-    const accountId = linkedAccounts[0]?.id
-    if (!accountId) return
+    const accountIds = activeAccountId ? [activeAccountId] : linkedAccounts.map((account: any) => account.id)
+    if (!accountIds.length) return
     setSyncing(true)
     try {
-      await apiFetch(`/sync/account/${accountId}`, { method: "POST" })
+      for (const accountId of accountIds) {
+        await apiFetch(`/sync/account/${accountId}`, { method: "POST" })
+      }
       queryClient.invalidateQueries({ queryKey: ["emails"] })
     } finally {
       setSyncing(false)
@@ -238,14 +255,18 @@ export function Dashboard() {
   }
 
   const accountOptions = linkedAccounts.length
-    ? linkedAccounts.map((account: any) => ({
-        id: account.id,
-        name: account.display_name || account.email_address || account.provider?.toUpperCase?.() || "Account",
-        email: account.email_address || "Connected"
-      }))
+    ? [
+        { id: "all", name: "All accounts", email: `${linkedAccounts.length} linked account${linkedAccounts.length === 1 ? "" : "s"}` },
+        ...linkedAccounts.map((account: any) => ({
+          id: account.id,
+          name: account.display_name || account.email_address || account.provider?.toUpperCase?.() || "Account",
+          email: account.email_address || "Connected"
+        }))
+      ]
     : [{ id: "local", name: "Primary", email: "student@unisync.app" }]
 
-  const activeAccount = accountOptions[0]
+  const activeAccount =
+    accountOptions.find((account) => account.id === (activeAccountId || "all")) || accountOptions[0]
 
   return (
     <AppShell
@@ -265,7 +286,8 @@ export function Dashboard() {
         onLabelSelect: (labelId) => setState({ activeLabelId: labelId }),
         onCompose: () => setComposeOpen(true),
         onSync: handleSync,
-        onAccountSelect: () => {
+        onAccountSelect: (accountId) => {
+          setState({ activeAccountId: accountId === "all" ? null : accountId, selectedEmailId: null })
           setSidebarCollapsed(false)
         },
         onLogout: handleLogout
@@ -295,6 +317,13 @@ export function Dashboard() {
             onArchive={handleArchive}
             onDelete={handleDelete}
             onToggleRead={handleToggleRead}
+            hasMore={Boolean(hasNextPage)}
+            loadingMore={isFetchingNextPage}
+            onLoadMore={() => {
+              if (hasNextPage && !isFetchingNextPage) {
+                void fetchNextPage()
+              }
+            }}
           />
         </div>
       }

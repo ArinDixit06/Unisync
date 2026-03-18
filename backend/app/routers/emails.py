@@ -81,6 +81,7 @@ async def list_emails(
     filter: str | None = None,
     label_id: str | None = None,
     cursor: str | None = None,
+    offset: int = Query(default=0, ge=0),
     limit: int = Query(default=50, le=100),
 ):
     filters: list[tuple[str, str, str]] = [("user_id", "eq", user_id)]
@@ -142,6 +143,7 @@ async def list_emails(
         filters=filters,
         order="received_at.desc",
         limit=limit,
+        offset=offset,
         user_token=token,
     )
     emails = []
@@ -150,7 +152,8 @@ async def list_emails(
         row["provider"] = account.get("provider")
         row["account_email"] = account.get("email_address")
         emails.append(row)
-    return {"emails": emails}
+    next_offset = offset + len(emails) if len(emails) == limit else None
+    return {"emails": emails, "next_offset": next_offset}
 
 
 @router.get("/{email_id}")

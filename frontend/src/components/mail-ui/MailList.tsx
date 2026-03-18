@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { Filter } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
@@ -13,7 +13,10 @@ export function MailList({
   onSelect,
   onArchive,
   onDelete,
-  onToggleRead
+  onToggleRead,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore
 }: {
   emails: MailListItemData[]
   selectedEmailId: string | null
@@ -25,6 +28,9 @@ export function MailList({
   onArchive: (emailId: string) => void
   onDelete: (emailId: string) => void
   onToggleRead: (email: MailListItemData) => void
+  hasMore?: boolean
+  loadingMore?: boolean
+  onLoadMore?: () => void
 }) {
   const listRef = useRef<HTMLDivElement | null>(null)
   const [multiSelect, setMultiSelect] = useState<Record<string, boolean>>({})
@@ -40,6 +46,14 @@ export function MailList({
     () => (selectedEmailId ? emails.findIndex((email) => email.id === selectedEmailId) : -1),
     [emails, selectedEmailId]
   )
+
+  useEffect(() => {
+    if (!hasMore || loadingMore || !onLoadMore || !listRef.current) return
+    const { clientHeight, scrollHeight } = listRef.current
+    if (scrollHeight <= clientHeight + 24) {
+      onLoadMore()
+    }
+  }, [emails.length, hasMore, loadingMore, onLoadMore])
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
@@ -113,6 +127,13 @@ export function MailList({
         role="list"
         tabIndex={0}
         onKeyDown={handleKeyDown}
+        onScroll={(event) => {
+          if (!hasMore || loadingMore || !onLoadMore) return
+          const element = event.currentTarget
+          if (element.scrollHeight - element.scrollTop - element.clientHeight < 240) {
+            onLoadMore()
+          }
+        }}
       >
         <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
           {rowVirtualizer.getVirtualItems().map((virtualRow) => {
@@ -149,6 +170,9 @@ export function MailList({
             )
           })}
         </div>
+        {loadingMore ? (
+          <div className="px-4 py-3 text-center text-xs text-gray-400">Loading more mail...</div>
+        ) : null}
       </div>
     </section>
   )

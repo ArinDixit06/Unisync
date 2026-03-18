@@ -7,6 +7,7 @@ import { LabelList, LabelItem } from "./LabelList"
 import { EmailCategory } from "../../stores/uiStore"
 
 const categories: Array<{ id: EmailCategory; label: string }> = [
+  { id: "all", label: "All mail" },
   { id: "primary", label: "Primary" },
   { id: "updates", label: "Updates" },
   { id: "promotions", label: "Promotions" },
@@ -55,6 +56,7 @@ export function Sidebar({
 }: SidebarProps) {
   const [sections, setSections] = useState({ folders: true, categories: true, labels: true })
   const [accountOpen, setAccountOpen] = useState(false)
+  const linkedAccountItems = accounts.filter((item) => item.id !== "all")
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -107,11 +109,11 @@ export function Sidebar({
         />
       ) : null}
 
-      {!collapsed && accounts.length ? (
+      {!collapsed && linkedAccountItems.length ? (
         <div>
           <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">Linked Accounts</div>
           <div className="mt-2 space-y-2">
-            {accounts.map((item) => (
+            {linkedAccountItems.map((item) => (
               <div
                 key={item.id}
                 className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600"

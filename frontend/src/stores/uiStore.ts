@@ -1,12 +1,13 @@
 ﻿import { create } from "zustand"
 
-export type EmailCategory = "primary" | "updates" | "promotions" | "social" | "forums"
+export type EmailCategory = "all" | "primary" | "updates" | "promotions" | "social" | "forums"
 
 export interface UIStore {
   sidebarOpen: boolean
   detailPanelOpen: boolean
   activeCategory: EmailCategory
   activeFilter: "all" | "unread" | "starred" | "high_risk" | "snoozed" | "sent" | "drafts" | "trash"
+  activeAccountId: string | null
   activeLabelId: string | null
   selectedEmailId: string | null
   selectedThreadId: string | null
@@ -27,8 +28,9 @@ export interface UIStore {
 export const useUIStore = create<UIStore>((set) => ({
   sidebarOpen: true,
   detailPanelOpen: true,
-  activeCategory: "primary",
+  activeCategory: "all",
   activeFilter: "all",
+  activeAccountId: null,
   activeLabelId: null,
   selectedEmailId: null,
   selectedThreadId: null,

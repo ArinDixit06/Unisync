@@ -43,6 +43,7 @@ async def select(
     filters: list[tuple[str, str, str]] | None = None,
     order: str | None = None,
     limit: int | None = None,
+    offset: int | None = None,
     user_token: str | None = None,
     use_service: bool = False,
 ):
@@ -53,6 +54,8 @@ async def select(
         params["order"] = order
     if limit is not None:
         params["limit"] = str(limit)
+    if offset is not None:
+        params["offset"] = str(offset)
     resp = await client.get(
         f"{_rest_url()}/{table}",
         params=params,
