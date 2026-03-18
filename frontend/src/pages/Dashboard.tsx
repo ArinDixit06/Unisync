@@ -18,6 +18,9 @@ export function Dashboard() {
   const { setLinkedAccounts, accessToken, setUser, setAccessToken } = useAuthStore()
   const { activeCategory, activeFilter, activeLabelId, selectedEmailId, sidebarOpen, setState } = useUIStore()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const resolvedWsBaseUrl =
+    import.meta.env.VITE_WS_URL ||
+    `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`
 
   const { data: accountsData } = useQuery({
     queryKey: ["accounts"],
@@ -54,7 +57,7 @@ export function Dashboard() {
 
   useEffect(() => {
     if (!accessToken) return
-    const wsUrl = `${import.meta.env.VITE_WS_URL || "ws://localhost:8000"}/ws?token=${accessToken}`
+    const wsUrl = `${resolvedWsBaseUrl}/ws?token=${accessToken}`
     const socket = new WebSocket(wsUrl)
     socket.onmessage = () => {
       queryClient.invalidateQueries({ queryKey: ["emails"] })
@@ -63,7 +66,7 @@ export function Dashboard() {
       }
     }
     return () => socket.close()
-  }, [accessToken, queryClient, selectedEmailId])
+  }, [accessToken, queryClient, resolvedWsBaseUrl, selectedEmailId])
 
   useEffect(() => {
     if (!accessToken || syncHandledRef.current) return

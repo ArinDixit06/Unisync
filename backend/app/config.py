@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     )
 
     environment: str = "development"
-    api_base_url: str = "http://localhost:8000"
-    frontend_url: str = "http://localhost:5173"
+    api_base_url: str = "https://unisync-pztl.onrender.com"
+    frontend_url: str = "https://unisync-pztl.onrender.com"
 
     database_url: str | None = None
     use_db: bool = Field(default=False, validation_alias="USE_DB")

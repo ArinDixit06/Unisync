@@ -45,7 +45,7 @@ erDiagram
 1. Copy `.env.example` to `.env` and fill in required values.
 2. Run `docker-compose up`.
 3. Apply migrations using your Postgres client (files in `backend/migrations`).
-4. Visit `http://localhost:5173`.
+4. Visit the frontend at `http://<your-host>:5173`.
 
 ## Environment Setup
 - Backend reads `.env` from the repo root.

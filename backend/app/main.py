@@ -16,13 +16,7 @@ logger = get_logger()
 
 app = FastAPI(title="UniSync API", version="0.1.0")
 
-cors_origins = list(
-    {
-        settings.frontend_url,
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    }
-)
+cors_origins = [settings.frontend_url]
 
 app.add_middleware(
     CORSMiddleware,
