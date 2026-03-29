@@ -9,6 +9,8 @@ from app.supabase_rest import select, update, insert
 from app.schemas import EmailUpdate, SnoozeRequest
 from app.errors import not_found
 from app.rate_limit import RateLimiter, rate_limit, user_key
+from app.mail_crypto import decrypt_mail_json, decrypt_mail_text
+from app.services.cache import bump_user_cache_version, get_cached_json, get_user_cache_version, set_cached_json
 
 _email_limiter = RateLimiter(120, "emails")
 
@@ -30,6 +32,26 @@ def _strip_html(html: str) -> str:
     if not html:
         return ""
     return BeautifulSoup(html, "html.parser").get_text(" ", strip=True)
+
+
+def _hydrate_email(row: dict) -> dict:
+    row["body_html"] = decrypt_mail_text(row.get("body_html_enc")) or row.get("body_html") or ""
+    row["raw_headers"] = decrypt_mail_json(row.get("raw_headers_enc"), row.get("raw_headers") or {})
+    row.pop("body_html_enc", None)
+    row.pop("raw_headers_enc", None)
+    return row
+
+
+def _mail_sort_order(filter_value: str | None, category: str | None) -> str:
+    if filter_value in {"trash", "sent"}:
+        return "received_at.desc"
+    if filter_value == "high_risk":
+        return "risk_level.desc.nullslast,priority_level.desc.nullslast,received_at.desc"
+    if filter_value == "unread":
+        return "priority_level.desc.nullslast,risk_level.desc.nullslast,is_read.asc,received_at.desc"
+    if category == "primary" or not filter_value:
+        return "priority_level.desc.nullslast,risk_level.desc.nullslast,received_at.desc"
+    return "received_at.desc"
 
 
 def _detect_event(body_html: str, subject: str | None):
@@ -84,6 +106,22 @@ async def list_emails(
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=50, le=100),
 ):
+    cache_version = await get_user_cache_version(user_id)
+    cache_payload = {
+        "user_id": user_id,
+        "account_id": account_id,
+        "category": category,
+        "filter": filter,
+        "label_id": label_id,
+        "cursor": cursor,
+        "offset": offset,
+        "limit": limit,
+        "version": cache_version,
+    }
+    cached = await get_cached_json("emails:list", cache_payload)
+    if cached is not None:
+        return cached
+
     filters: list[tuple[str, str, str]] = [("user_id", "eq", user_id)]
 
     if account_id:
@@ -141,7 +179,7 @@ async def list_emails(
         "is_snoozed,snoozed_until,has_attachments,processing_status,risk_level,priority_level,category,account_id,"
         "linked_accounts(provider,email_address)",
         filters=filters,
-        order="received_at.desc",
+        order=_mail_sort_order(filter, category),
         limit=limit,
         offset=offset,
         user_token=token,
@@ -153,7 +191,9 @@ async def list_emails(
         row["account_email"] = account.get("email_address")
         emails.append(row)
     next_offset = offset + len(emails) if len(emails) == limit else None
-    return {"emails": emails, "next_offset": next_offset}
+    response = {"emails": emails, "next_offset": next_offset}
+    await set_cached_json("emails:list", cache_payload, response, ttl_seconds=15)
+    return response
 
 
 @router.get("/{email_id}")
@@ -167,6 +207,7 @@ async def get_email(email_id: str, user_id: str = Depends(user_id_dep), token: s
     if not rows:
         not_found("Email not found")
     result = rows[0]
+    result = _hydrate_email(result)
     account = result.pop("linked_accounts", None) or {}
     result["provider"] = account.get("provider")
     result["account_email"] = account.get("email_address")
@@ -243,6 +284,7 @@ async def update_email(email_id: str, payload: EmailUpdate, user_id: str = Depen
         filters=[("id", "eq", email_id), ("user_id", "eq", user_id)],
         user_token=token,
     )
+    await bump_user_cache_version(user_id)
     return {"status": "ok"}
 
 
@@ -254,6 +296,7 @@ async def delete_email(email_id: str, user_id: str = Depends(user_id_dep), token
         filters=[("id", "eq", email_id), ("user_id", "eq", user_id)],
         user_token=token,
     )
+    await bump_user_cache_version(user_id)
     return {"status": "ok"}
 
 
@@ -265,6 +308,7 @@ async def snooze_email(email_id: str, payload: SnoozeRequest, user_id: str = Dep
         filters=[("id", "eq", email_id), ("user_id", "eq", user_id)],
         user_token=token,
     )
+    await bump_user_cache_version(user_id)
     return {"status": "ok"}
 
 
@@ -276,6 +320,7 @@ async def unsnooze_email(email_id: str, user_id: str = Depends(user_id_dep), tok
         filters=[("id", "eq", email_id), ("user_id", "eq", user_id)],
         user_token=token,
     )
+    await bump_user_cache_version(user_id)
     return {"status": "ok"}
 
 
@@ -288,4 +333,4 @@ async def get_thread(thread_id: str, user_id: str = Depends(user_id_dep), token:
         order="received_at.asc",
         user_token=token,
     )
-    return {"emails": rows}
+    return {"emails": [_hydrate_email(row) for row in rows]}

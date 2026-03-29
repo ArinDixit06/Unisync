@@ -3,6 +3,7 @@ from app.auth import user_id_dep, user_token_dep
 from app.supabase_rest import select
 from app.crypto import decrypt
 from app.services import gmail, outlook
+from app.services.cache import acquire_recent_lock, bump_user_cache_version
 from app.services.email import parse_gmail_message, parse_outlook_message
 from app.services.store import store_email
 from app.queue import enqueue_job
@@ -34,6 +35,8 @@ async def sync_account(account_id: str, user_id: str = Depends(user_id_dep), tok
             if not msg_id or msg_id in seen:
                 continue
             seen.add(msg_id)
+            if not await acquire_recent_lock(f"sync:{account_id}", msg_id, ttl_seconds=900):
+                continue
             raw = await gmail.fetch_message(access_token, msg_id)
             parsed = await parse_gmail_message(
                 raw,
@@ -46,10 +49,15 @@ async def sync_account(account_id: str, user_id: str = Depends(user_id_dep), tok
     else:
         messages = await outlook.list_messages(access_token)
         for msg in messages:
+            msg_id = msg.get("id")
+            if msg_id and not await acquire_recent_lock(f"sync:{account_id}", msg_id, ttl_seconds=900):
+                continue
             parsed = parse_outlook_message(msg)
             parsed["provider"] = "outlook"
             email_id = await store_email(user_id, account_id, parsed)
             await enqueue_job("process_email", email_id)
             stored += 1
 
+    if stored:
+        await bump_user_cache_version(user_id)
     return {"status": "ok", "count": stored}

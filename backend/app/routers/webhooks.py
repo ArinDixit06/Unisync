@@ -7,6 +7,7 @@ from app.services import gmail, outlook
 from app.services.email import parse_gmail_message, parse_outlook_message
 from app.services.store import store_email
 from app.queue import enqueue_job
+from app.services.cache import bump_user_cache_version
 from app.webhook_security import verify_signature
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
@@ -58,6 +59,7 @@ async def gmail_webhook(request: Request):
         parsed["provider"] = "gmail"
         email_id = await store_email(account["user_id"], account["id"], parsed)
         await enqueue_job("process_email", email_id)
+        await bump_user_cache_version(account["user_id"])
 
     return {"status": "ok"}
 
@@ -95,5 +97,6 @@ async def outlook_webhook(request: Request):
         parsed["provider"] = "outlook"
         email_id = await store_email(account["user_id"], account["id"], parsed)
         await enqueue_job("process_email", email_id)
+        await bump_user_cache_version(account["user_id"])
 
     return {"status": "ok"}

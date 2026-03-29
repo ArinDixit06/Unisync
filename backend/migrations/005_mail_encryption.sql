@@ -1,0 +1,10 @@
+ALTER TABLE emails
+  ADD COLUMN IF NOT EXISTS body_html_enc TEXT,
+  ADD COLUMN IF NOT EXISTS raw_headers_enc TEXT;
+
+ALTER TABLE drafts
+  ADD COLUMN IF NOT EXISTS to_list_enc TEXT,
+  ADD COLUMN IF NOT EXISTS cc_list_enc TEXT,
+  ADD COLUMN IF NOT EXISTS bcc_list_enc TEXT,
+  ADD COLUMN IF NOT EXISTS subject_enc TEXT,
+  ADD COLUMN IF NOT EXISTS body_html_enc TEXT;

@@ -1,6 +1,7 @@
 ﻿from arq import create_pool
 from arq.connections import RedisSettings, ArqRedis
 from app.config import settings
+from app.services.cache import bump_user_cache_version
 
 _redis: ArqRedis | None = None
 
@@ -19,7 +20,18 @@ async def enqueue_job(name: str, *args, **kwargs):
         if name == "process_email":
             from app.workers.tasks import process_email
 
-            return await process_email(None, *args, **kwargs)
+            result = await process_email(None, *args, **kwargs)
+            if args:
+                await _refresh_user_cache_for_email(args[0])
+            return result
         return None
     redis = await get_redis()
     return await redis.enqueue_job(name, *args, **kwargs)
+
+
+async def _refresh_user_cache_for_email(email_id: str) -> None:
+    from app.supabase_rest import select
+
+    rows = await select("emails", "user_id", filters=[("id", "eq", email_id)], use_service=True)
+    if rows and rows[0].get("user_id"):
+        await bump_user_cache_version(rows[0]["user_id"])

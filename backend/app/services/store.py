@@ -2,12 +2,16 @@ import uuid
 from app.supabase_rest import select, insert
 from app.services.email import clean_html, extract_preview
 from app.realtime_bus import publish_event
+from app.mail_crypto import encrypt_mail_json, encrypt_mail_text
+from app.services.security import sanitize_headers
+from app.services.cache import bump_user_cache_version
 
 
 async def store_email(user_id: str, account_id: str, message: dict) -> str:
     email_id = str(uuid.uuid4())
     body_html = clean_html(message.get("body") or "")
     preview = message.get("snippet") or extract_preview(body_html)
+    safe_headers = sanitize_headers(message.get("headers") or {})
 
     existing = await select(
         "emails",
@@ -31,9 +35,11 @@ async def store_email(user_id: str, account_id: str, message: dict) -> str:
             "sender_name": message.get("sender_name"),
             "sender_email": message.get("sender_email"),
             "preview_snippet": preview,
-            "body_html": body_html,
+            "body_html": None,
+            "body_html_enc": encrypt_mail_text(body_html),
             "received_at": message.get("received_at").isoformat() if hasattr(message.get("received_at"), "isoformat") else message.get("received_at"),
-            "raw_headers": message.get("headers") or {},
+            "raw_headers": None,
+            "raw_headers_enc": encrypt_mail_json(safe_headers),
         },
         use_service=True,
     )
@@ -45,4 +51,5 @@ async def store_email(user_id: str, account_id: str, message: dict) -> str:
             "processing_status": "pending",
         },
     )
+    await bump_user_cache_version(user_id)
     return email_id

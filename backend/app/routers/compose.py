@@ -8,8 +8,10 @@ from app.auth import user_id_dep, user_token_dep
 from app.supabase_rest import select, insert, update, delete
 from app.schemas import SendEmailRequest
 from app.crypto import decrypt, encrypt
+from app.mail_crypto import decrypt_mail_json, decrypt_mail_text, encrypt_mail_json, encrypt_mail_text
 from app.services import gmail, outlook
 from app.services.email import clean_html, extract_preview
+from app.services.cache import bump_user_cache_version
 from app.errors import not_found, bad_request
 from app.rate_limit import RateLimiter, rate_limit, user_key
 
@@ -28,6 +30,29 @@ def _normalize_recipients(values: list[str] | None) -> list[str]:
             if addr:
                 cleaned.append(addr)
     return cleaned
+
+
+def _hydrate_draft(row: dict) -> dict:
+    row["to_list"] = (
+        decrypt_mail_json(row.get("to_list_enc"), row.get("to_list") or [])
+        if "to_list_enc" in row or "to_list" in row
+        else []
+    )
+    row["cc_list"] = (
+        decrypt_mail_json(row.get("cc_list_enc"), row.get("cc_list") or [])
+        if "cc_list_enc" in row or "cc_list" in row
+        else []
+    )
+    row["bcc_list"] = (
+        decrypt_mail_json(row.get("bcc_list_enc"), row.get("bcc_list") or [])
+        if "bcc_list_enc" in row or "bcc_list" in row
+        else []
+    )
+    row["subject"] = decrypt_mail_text(row.get("subject_enc")) or row.get("subject")
+    row["body_html"] = decrypt_mail_text(row.get("body_html_enc")) or row.get("body_html")
+    for key in ("to_list_enc", "cc_list_enc", "bcc_list_enc", "subject_enc", "body_html_enc"):
+        row.pop(key, None)
+    return row
 
 
 def _build_email(
@@ -142,7 +167,8 @@ async def send_email(payload: SendEmailRequest, user_id: str = Depends(user_id_d
             "sender_name": account.get("display_name") or account.get("email_address"),
             "sender_email": account.get("email_address"),
             "preview_snippet": preview,
-            "body_html": body_html,
+            "body_html": None,
+            "body_html_enc": encrypt_mail_text(body_html),
             "received_at": now_iso,
             "is_read": True,
             "has_attachments": bool(payload.attachments),
@@ -152,6 +178,7 @@ async def send_email(payload: SendEmailRequest, user_id: str = Depends(user_id_d
         },
         use_service=True,
     )
+    await bump_user_cache_version(user_id)
 
     return {"status": "sent"}
 
@@ -175,6 +202,7 @@ async def list_drafts(user_id: str = Depends(user_id_dep), token: str = Depends(
         order="updated_at.desc",
         user_token=token,
     )
+    rows = [_hydrate_draft(row) for row in rows]
     return {"drafts": rows}
 
 
@@ -185,14 +213,20 @@ async def create_draft(payload: SendEmailRequest, user_id: str = Depends(user_id
         {
             "user_id": user_id,
             "account_id": payload.account_id,
-            "to_list": payload.to,
-            "cc_list": payload.cc,
-            "bcc_list": payload.bcc,
-            "subject": payload.subject,
-            "body_html": payload.body_html,
+            "to_list": None,
+            "cc_list": None,
+            "bcc_list": None,
+            "subject": None,
+            "body_html": None,
+            "to_list_enc": encrypt_mail_json(payload.to),
+            "cc_list_enc": encrypt_mail_json(payload.cc or []),
+            "bcc_list_enc": encrypt_mail_json(payload.bcc or []),
+            "subject_enc": encrypt_mail_text(payload.subject),
+            "body_html_enc": encrypt_mail_text(payload.body_html),
         },
         user_token=token,
     )
+    await bump_user_cache_version(user_id)
     return {"status": "ok"}
 
 
@@ -202,16 +236,22 @@ async def update_draft(draft_id: str, payload: SendEmailRequest, user_id: str = 
         "drafts",
         {
             "account_id": payload.account_id,
-            "to_list": payload.to,
-            "cc_list": payload.cc,
-            "bcc_list": payload.bcc,
-            "subject": payload.subject,
-            "body_html": payload.body_html,
+            "to_list": None,
+            "cc_list": None,
+            "bcc_list": None,
+            "subject": None,
+            "body_html": None,
+            "to_list_enc": encrypt_mail_json(payload.to),
+            "cc_list_enc": encrypt_mail_json(payload.cc or []),
+            "bcc_list_enc": encrypt_mail_json(payload.bcc or []),
+            "subject_enc": encrypt_mail_text(payload.subject),
+            "body_html_enc": encrypt_mail_text(payload.body_html),
             "updated_at": datetime.now(timezone.utc).isoformat(),
         },
         filters=[("id", "eq", draft_id), ("user_id", "eq", user_id)],
         user_token=token,
     )
+    await bump_user_cache_version(user_id)
     return {"status": "ok"}
 
 
@@ -222,4 +262,5 @@ async def delete_draft(draft_id: str, user_id: str = Depends(user_id_dep), token
         filters=[("id", "eq", draft_id), ("user_id", "eq", user_id)],
         user_token=token,
     )
+    await bump_user_cache_version(user_id)
     return {"status": "ok"}

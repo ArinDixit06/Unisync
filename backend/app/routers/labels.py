@@ -3,6 +3,7 @@ from app.auth import user_id_dep, user_token_dep
 from app.supabase_rest import select, insert, update, delete
 from app.schemas import LabelRequest
 from app.errors import not_found
+from app.services.cache import bump_user_cache_version
 
 router = APIRouter(prefix="/labels", tags=["labels"])
 
@@ -26,6 +27,7 @@ async def create_label(payload: LabelRequest, user_id: str = Depends(user_id_dep
         {"user_id": user_id, "name": payload.name, "color": payload.color},
         user_token=token,
     )
+    await bump_user_cache_version(user_id)
     return {"status": "ok"}
 
 
@@ -37,6 +39,7 @@ async def update_label(label_id: str, payload: LabelRequest, user_id: str = Depe
         filters=[("id", "eq", label_id), ("user_id", "eq", user_id)],
         user_token=token,
     )
+    await bump_user_cache_version(user_id)
     return {"status": "ok"}
 
 
@@ -47,6 +50,7 @@ async def delete_label(label_id: str, user_id: str = Depends(user_id_dep), token
         filters=[("id", "eq", label_id), ("user_id", "eq", user_id)],
         user_token=token,
     )
+    await bump_user_cache_version(user_id)
     return {"status": "ok"}
 
 
@@ -65,6 +69,7 @@ async def add_label(email_id: str, label_id: str, user_id: str = Depends(user_id
         {"email_id": email_id, "label_id": label_id},
         user_token=token,
     )
+    await bump_user_cache_version(user_id)
     return {"status": "ok"}
 
 
@@ -83,4 +88,5 @@ async def remove_label(email_id: str, label_id: str, user_id: str = Depends(user
         filters=[("email_id", "eq", email_id), ("label_id", "eq", label_id)],
         user_token=token,
     )
+    await bump_user_cache_version(user_id)
     return {"status": "ok"}
