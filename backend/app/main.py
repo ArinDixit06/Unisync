@@ -101,14 +101,7 @@ def _extract_user_id(request: Request) -> str | None:
         )
         return payload.get("sub")
     except jwt.PyJWTError:
-        try:
-            payload = jwt.decode(
-                token,
-                options={"verify_signature": False, "verify_aud": False},
-            )
-            return payload.get("sub")
-        except jwt.PyJWTError:
-            return None
+        return None
 
 
 @app.middleware("http")

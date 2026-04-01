@@ -19,16 +19,10 @@ def _decode_token(token: str) -> dict:
             options={"verify_aud": False},
         )
     except jwt.PyJWTError:
-        try:
-            return jwt.decode(
-                token,
-                options={"verify_signature": False, "verify_aud": False},
-            )
-        except jwt.PyJWTError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail={"code": "unauthorized", "message": "Invalid token"},
-            ) from exc
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "unauthorized", "message": "Invalid token"},
+        )
 
 
 async def get_current_user(request: Request) -> AuthUser:
