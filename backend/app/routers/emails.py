@@ -22,10 +22,14 @@ def _parse_cursor(cursor: str | None):
         return None, None
     if "|" in cursor:
         ts, eid = cursor.split("|", 1)
-        return datetime.fromisoformat(ts), eid
-    return datetime.fromisoformat(cursor), None
-
-
+        try:
+            return datetime.fromisoformat(ts), eid
+        except ValueError:
+            return None, None
+    try:
+        return datetime.fromisoformat(cursor), None
+    except ValueError:
+        return None, None
 
 
 def _strip_html(html: str) -> str:
@@ -268,7 +272,6 @@ async def get_email(email_id: str, user_id: str = Depends(user_id_dep), token: s
 
 @router.patch("/{email_id}")
 async def update_email(email_id: str, payload: EmailUpdate, user_id: str = Depends(user_id_dep), token: str = Depends(user_token_dep)):
-    fields = []
     values = {}
     if payload.is_read is not None:
         values["is_read"] = payload.is_read

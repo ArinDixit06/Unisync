@@ -27,7 +27,7 @@ async def confirm_event(event_id: str, user_id: str = Depends(user_id_dep), toke
         try:
             start_dt = datetime.fromisoformat(start_dt.replace("Z", "+00:00"))
         except ValueError:
-            start_dt = None
+            bad_request("Event date is invalid")
     if not start_dt:
         bad_request("Event date missing")
 
@@ -50,7 +50,7 @@ async def confirm_event(event_id: str, user_id: str = Depends(user_id_dep), toke
         try:
             end_dt = datetime.fromisoformat(end_dt.replace("Z", "+00:00"))
         except ValueError:
-            end_dt = None
+            bad_request("Event end date is invalid")
 
     try:
         result = await create_event(
@@ -89,7 +89,7 @@ async def confirm_event(event_id: str, user_id: str = Depends(user_id_dep), toke
                     detail_json = exc2.response.json()
                     detail = detail_json.get("error", {}).get("message") or detail_json.get("error_description") or detail
                 except Exception:
-                    pass
+                    detail = exc2.response.text
                 bad_request(f"Calendar error: {detail}")
         else:
             detail = exc.response.text
@@ -97,7 +97,7 @@ async def confirm_event(event_id: str, user_id: str = Depends(user_id_dep), toke
                 detail_json = exc.response.json()
                 detail = detail_json.get("error", {}).get("message") or detail_json.get("error_description") or detail
             except Exception:
-                pass
+                detail = exc.response.text
             bad_request(f"Calendar error: {detail}")
     except httpx.HTTPError as exc:
         bad_request(f"Calendar error: {str(exc)}")

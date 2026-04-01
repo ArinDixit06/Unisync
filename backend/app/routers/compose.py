@@ -1,4 +1,5 @@
 import base64
+import binascii
 from email.message import EmailMessage
 from uuid import uuid4
 from datetime import datetime, timezone
@@ -70,7 +71,10 @@ def _build_email(
     msg.set_content(req.body_html, subtype="html")
 
     for attachment in req.attachments or []:
-        data = base64.b64decode(attachment.content_base64)
+        try:
+            data = base64.b64decode(attachment.content_base64, validate=True)
+        except (ValueError, binascii.Error):
+            bad_request(f"Invalid attachment payload for {attachment.filename}")
         maintype, _, subtype = attachment.content_type.partition("/")
         msg.add_attachment(
             data,

@@ -1,6 +1,7 @@
 ﻿import base64
 import json
 from fastapi import APIRouter, Request
+from app.errors import bad_request
 from app.supabase_rest import select
 from app.crypto import decrypt
 from app.services import gmail, outlook
@@ -17,14 +18,20 @@ router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 async def gmail_webhook(request: Request):
     body = await request.body()
     verify_signature(body, request.headers.get("x-unisync-signature"))
-    payload = json.loads(body.decode("utf-8"))
+    try:
+        payload = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        bad_request("Invalid Gmail webhook payload")
     message = payload.get("message", {})
     data = message.get("data")
     if not data:
         return {"status": "ok"}
 
-    decoded = base64.b64decode(data).decode("utf-8")
-    event = json.loads(decoded)
+    try:
+        decoded = base64.b64decode(data).decode("utf-8")
+        event = json.loads(decoded)
+    except (ValueError, UnicodeDecodeError, json.JSONDecodeError):
+        bad_request("Invalid Gmail webhook event")
     email_address = event.get("emailAddress")
     history_id = event.get("historyId")
     if not email_address or not history_id:
@@ -68,11 +75,17 @@ async def gmail_webhook(request: Request):
 async def outlook_webhook(request: Request):
     body = await request.body()
     verify_signature(body, request.headers.get("x-unisync-signature"))
-    payload = json.loads(body.decode("utf-8"))
+    try:
+        payload = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        bad_request("Invalid Outlook webhook payload")
     notifications = payload.get("value", []) or []
 
     for note in notifications:
         if note.get("clientState") and note.get("clientState") != "unisync":
+            continue
+        subscription_id = note.get("subscriptionId")
+        if not subscription_id:
             continue
         resource_data = note.get("resourceData", {})
         message_id = resource_data.get("id")
@@ -82,9 +95,7 @@ async def outlook_webhook(request: Request):
         accounts = await select(
             "linked_accounts",
             "id,user_id,access_token_enc",
-            filters=[("provider", "eq", "outlook")],
-            order="created_at.desc",
-            limit=1,
+            filters=[("provider", "eq", "outlook"), ("subscription_id", "eq", subscription_id)],
             use_service=True,
         )
         if not accounts:
