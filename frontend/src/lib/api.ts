@@ -7,9 +7,20 @@ const API_BASE_URL =
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const token = useAuthStore.getState().accessToken
   const headers = new Headers(options.headers || {})
-  headers.set("Content-Type", "application/json")
   if (token) {
     headers.set("Authorization", `Bearer ${token}`)
+  }
+  if (options.body != null && !headers.has("Content-Type")) {
+    const body = options.body
+    const isNonJsonBody =
+      typeof FormData !== "undefined" && body instanceof FormData ||
+      typeof Blob !== "undefined" && body instanceof Blob ||
+      typeof ArrayBuffer !== "undefined" && body instanceof ArrayBuffer ||
+      ArrayBuffer.isView(body as ArrayBufferView) ||
+      typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams
+    if (!isNonJsonBody) {
+      headers.set("Content-Type", "application/json")
+    }
   }
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,

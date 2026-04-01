@@ -1,6 +1,7 @@
 import { Paperclip, Reply, Forward, Archive, Trash2, X } from "lucide-react"
 import { EmptyState } from "./EmptyState"
 import { EmailViewer } from "./EmailViewer"
+import { safeParseJsonArray } from "../../lib/json"
 
 export function MailPreview({
   email,
@@ -31,7 +32,7 @@ export function MailPreview({
     )
   }
 
-  const bullets = typeof email.summary_bullets === "string" ? JSON.parse(email.summary_bullets) : email.summary_bullets
+  const bullets = safeParseJsonArray(email.summary_bullets)
 
   const events = email.suggested_events || []
 
@@ -127,7 +128,7 @@ export function MailPreview({
           </div>
         ) : null}
 
-        {bullets ? (
+        {bullets.length ? (
           <div className="mb-5 rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-600 shadow-soft">
             <p className="mb-2 font-semibold text-gray-800">AI Summary</p>
             <ul className="list-disc space-y-1 pl-4">
@@ -158,8 +159,6 @@ export function MailPreview({
             </div>
           </div>
         ) : null}
-
-        {events.length ? null : null}
       </div>
     </article>
   )

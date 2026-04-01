@@ -1,8 +1,41 @@
+import DOMPurify from "dompurify"
 import { Button, Badge } from "../primitives"
 import "./inbox.css"
 import { AISummaryCard } from "./AISummaryCard"
 import { RiskBanner } from "./RiskBanner"
 import { SuggestedEventCard } from "./SuggestedEventCard"
+import { safeParseJsonArray } from "../../lib/json"
+
+const sanitizeEmailHtml = (html: string) => {
+  const clean = DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true },
+    ADD_TAGS: ["style", "table", "thead", "tbody", "tfoot", "tr", "td", "th"],
+    ADD_ATTR: [
+      "target",
+      "rel",
+      "style",
+      "class",
+      "align",
+      "valign",
+      "bgcolor",
+      "width",
+      "height",
+      "border",
+      "cellpadding",
+      "cellspacing",
+      "colspan",
+      "rowspan",
+      "srcset"
+    ]
+  })
+
+  const doc = new DOMParser().parseFromString(clean, "text/html")
+  doc.querySelectorAll("a").forEach((anchor) => {
+    anchor.setAttribute("target", "_blank")
+    anchor.setAttribute("rel", "noopener noreferrer")
+  })
+  return doc.body.innerHTML
+}
 
 export function EmailDetail({
   email,
@@ -23,7 +56,8 @@ export function EmailDetail({
     return <div className="email-detail">Select an email</div>
   }
 
-  const bullets = typeof email.summary_bullets === "string" ? JSON.parse(email.summary_bullets) : email.summary_bullets
+  const bullets = safeParseJsonArray(email.summary_bullets)
+  const bodyHtml = email.body_html ? sanitizeEmailHtml(email.body_html) : ""
 
   return (
     <div className="email-detail">
@@ -48,9 +82,9 @@ export function EmailDetail({
         <RiskBanner level={email.risk_level} reasons={email.risk_reasons} onDismiss={() => {}} />
       ) : null}
 
-      {bullets ? <AISummaryCard bullets={bullets} /> : null}
+      {bullets.length ? <AISummaryCard bullets={bullets} /> : null}
 
-      <div dangerouslySetInnerHTML={{ __html: email.body_html || "" }} />
+      {bodyHtml ? <div dangerouslySetInnerHTML={{ __html: bodyHtml }} /> : null}
 
       {(email.suggested_events || []).map((event: any) => (
         <SuggestedEventCard

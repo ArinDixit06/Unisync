@@ -67,8 +67,8 @@ export function Dashboard() {
 
   useEffect(() => {
     if (!accessToken) return
-    const wsUrl = `${resolvedWsBaseUrl}/ws?token=${accessToken}`
-    const socket = new WebSocket(wsUrl)
+    const wsUrl = `${resolvedWsBaseUrl}/ws`
+    const socket = new WebSocket(wsUrl, [accessToken])
     socket.onmessage = () => {
       queryClient.invalidateQueries({ queryKey: ["emails"] })
       if (selectedEmailId) {
@@ -239,8 +239,7 @@ export function Dashboard() {
       if (result?.auth_url) {
         window.location.assign(result.auth_url)
       }
-    } catch (err) {
-      console.error(err)
+    } catch {
       alert("Unable to start Gmail connection. Please try again.")
     }
   }
