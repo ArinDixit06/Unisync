@@ -1,8 +1,16 @@
 ﻿import { useAuthStore } from "../stores/authStore"
 
 const DEFAULT_PRODUCTION_API_BASE_URL = "https://unisync-pztl.onrender.com"
-const API_BASE_URL =
+export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? DEFAULT_PRODUCTION_API_BASE_URL : "")
+
+export function getWsBaseUrl() {
+  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL
+  if (API_BASE_URL) {
+    return API_BASE_URL.replace(/^http:/, "ws:").replace(/^https:/, "wss:")
+  }
+  return `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`
+}
 
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const token = useAuthStore.getState().accessToken

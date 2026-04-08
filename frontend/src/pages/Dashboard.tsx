@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query"
-import { apiFetch } from "../lib/api"
+import { apiFetch, getWsBaseUrl } from "../lib/api"
 import { AppShell, TopBar } from "../components/layout"
 import { ComposeButton, MailList, MailPreview } from "../components/mail-ui"
 import { ComposeModal } from "../components/compose/ComposeModal"
@@ -8,8 +8,6 @@ import { SearchCommand } from "../components/search/SearchCommand"
 import { useUIStore } from "../stores/uiStore"
 import { useAuthStore } from "../stores/authStore"
 import { supabase, supabaseConfigured } from "../lib/supabase"
-
-const DEFAULT_PRODUCTION_WS_URL = "wss://unisync-pztl.onrender.com"
 
 export function Dashboard() {
   const [composeOpen, setComposeOpen] = useState(false)
@@ -21,11 +19,7 @@ export function Dashboard() {
   const { activeAccountId, activeCategory, activeFilter, activeLabelId, selectedEmailId, sidebarOpen, setState } =
     useUIStore()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const resolvedWsBaseUrl =
-    import.meta.env.VITE_WS_URL ||
-    (import.meta.env.PROD
-      ? DEFAULT_PRODUCTION_WS_URL
-      : `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`)
+  const resolvedWsBaseUrl = getWsBaseUrl()
 
   const { data: accountsData } = useQuery({
     queryKey: ["accounts"],
