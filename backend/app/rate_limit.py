@@ -1,8 +1,7 @@
 ﻿import time
 from collections import defaultdict
 from fastapi import Request, HTTPException, status
-import jwt
-from app.config import settings
+from app.supabase_auth import get_token_subject
 
 
 class RateLimiter:
@@ -45,13 +44,4 @@ def user_key(request: Request) -> str:
     if not auth_header or not auth_header.lower().startswith("bearer "):
         return ip_key(request)
     token = auth_header.split(" ", 1)[1].strip()
-    try:
-        payload = jwt.decode(
-            token,
-            settings.supabase_jwt_secret,
-            algorithms=["HS256"],
-            options={"verify_aud": False},
-        )
-        return payload.get("sub") or ip_key(request)
-    except jwt.PyJWTError:
-        return ip_key(request)
+    return get_token_subject(token) or ip_key(request)

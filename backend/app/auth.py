@@ -1,6 +1,6 @@
 ﻿from fastapi import Depends, HTTPException, Request, status
 import jwt
-from app.config import settings
+from app.supabase_auth import decode_supabase_token
 
 
 class AuthUser:
@@ -12,12 +12,7 @@ class AuthUser:
 
 def _decode_token(token: str) -> dict:
     try:
-        return jwt.decode(
-            token,
-            settings.supabase_jwt_secret,
-            algorithms=["HS256"],
-            options={"verify_aud": False},
-        )
+        return decode_supabase_token(token)
     except jwt.PyJWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

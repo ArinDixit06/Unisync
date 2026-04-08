@@ -1,6 +1,6 @@
 ﻿from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import jwt
-from app.config import settings
+from app.supabase_auth import decode_supabase_token
 from app.realtime import manager
 
 router = APIRouter()
@@ -8,12 +8,7 @@ router = APIRouter()
 
 def _decode_token(token: str) -> dict | None:
     try:
-        return jwt.decode(
-            token,
-            settings.supabase_jwt_secret,
-            algorithms=["HS256"],
-            options={"verify_aud": False},
-        )
+        return decode_supabase_token(token)
     except jwt.PyJWTError:
         return None
 
