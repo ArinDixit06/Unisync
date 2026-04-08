@@ -16,7 +16,8 @@ function stableKey(prefix: string, payload: Record<string, unknown>): string {
 }
 
 function createRedis(url: string) {
-  return new IORedis(url);
+  const RedisCtor = IORedis as unknown as new (redisUrl: string) => any
+  return new RedisCtor(url)
 }
 
 function getRedis(): RedisClient | null {
