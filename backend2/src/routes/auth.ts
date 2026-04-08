@@ -147,13 +147,14 @@ router.get("/accounts", requireUser, async (request: AuthenticatedRequest, respo
 
 router.delete("/accounts/:accountId", requireUser, async (request: AuthenticatedRequest, response, next) => {
   try {
+    const accountId = String(request.params.accountId)
     const rows = await select("linked_accounts", "id", {
-      filters: [["id", "eq", request.params.accountId], ["user_id", "eq", request.currentUser!.userId]],
+      filters: [["id", "eq", accountId], ["user_id", "eq", request.currentUser!.userId]],
       userToken: request.currentUser!.token
     });
     if (!rows.length) notFound("Account not found");
     await remove("linked_accounts", {
-      filters: [["id", "eq", request.params.accountId]],
+      filters: [["id", "eq", accountId]],
       userToken: request.currentUser!.token
     });
     response.json({ status: "ok" });

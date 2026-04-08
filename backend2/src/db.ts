@@ -32,15 +32,15 @@ export async function closeDb(): Promise<void> {
 export async function fetchOne<T = unknown>(query: string, params: unknown[] = []): Promise<T | null> {
   if (!settings.useDb) return null;
   const db = await getPool();
-  const result = await db!.query<T>(query, params);
-  return result.rows[0] ?? null;
+  const result = await db!.query(query, params);
+  return (result.rows[0] as T | undefined) ?? null;
 }
 
 export async function fetchAll<T = unknown>(query: string, params: unknown[] = []): Promise<T[]> {
   if (!settings.useDb) return [];
   const db = await getPool();
-  const result = await db!.query<T>(query, params);
-  return result.rows;
+  const result = await db!.query(query, params);
+  return result.rows as T[];
 }
 
 export async function execute(query: string, params: unknown[] = []): Promise<string> {

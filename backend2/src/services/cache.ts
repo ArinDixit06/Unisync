@@ -4,7 +4,8 @@ import IORedis from "ioredis";
 
 import { settings } from "../config.js";
 
-let redis: IORedis | null = null;
+type RedisClient = ReturnType<typeof createRedis>;
+let redis: RedisClient | null = null;
 const memoryCache = new Map<string, { expiresAt: number; value: unknown }>();
 const memoryVersions = new Map<string, number>();
 const memoryLocks = new Map<string, number>();
@@ -14,9 +15,13 @@ function stableKey(prefix: string, payload: Record<string, unknown>): string {
   return `${prefix}:${digest}`;
 }
 
-function getRedis(): IORedis | null {
+function createRedis(url: string) {
+  return new IORedis(url);
+}
+
+function getRedis(): RedisClient | null {
   if (!settings.useRedis || !settings.redisUrl) return null;
-  if (!redis) redis = new IORedis(settings.redisUrl);
+  if (!redis) redis = createRedis(settings.redisUrl);
   return redis;
 }
 
