@@ -15,7 +15,7 @@ function required(name: string, fallback?: string): string {
 
 export const settings = {
   environment: process.env.ENVIRONMENT ?? "development",
-  apiBaseUrl: process.env.API_BASE_URL ?? "https://unisync-pztl.onrender.com",
+  apiBaseUrl: process.env.API_BASE_URL ?? "https://unisync-3kk2.onrender.com",
   frontendUrl: process.env.FRONTEND_URL ?? "https://unisync-five.vercel.app",
   frontendUrls: process.env.FRONTEND_URLS ?? null,
   databaseUrl: process.env.DATABASE_URL ?? null,
@@ -46,7 +46,7 @@ export function frontendOrigins(): string[] {
   const candidates = [
     settings.frontendUrl,
     "https://unisync-five.vercel.app",
-    "https://unisync-pztl.onrender.com",
+    "https://unisync-3kk2.onrender.com",
     ...(settings.frontendUrls ? settings.frontendUrls.split(",") : [])
   ];
 

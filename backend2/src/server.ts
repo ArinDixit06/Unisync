@@ -24,10 +24,18 @@ import webhooksRouter from "./routes/webhooks.js";
 const app = express();
 const logger = getLogger();
 const abortController = new AbortController();
+const corsOptions = {
+  origin: frontendOrigins(),
+  credentials: true,
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Authorization", "Content-Type"],
+  optionsSuccessStatus: 204
+} as const;
 
 configureLogging();
 
-app.use(cors({ origin: frontendOrigins(), credentials: true }));
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use((request, _response, next) => {
   if (request.path.startsWith("/webhooks")) return express.raw({ type: "*/*" })(request, _response, next);
   return express.json({ limit: "2mb" })(request, _response, next);
@@ -50,6 +58,9 @@ app.use(async (request, response, next) => {
 });
 
 app.use(healthRouter);
+app.get("/", (_request, response) => {
+  response.json({ status: "ok", service: "backend2" });
+});
 app.use("/auth", authRouter);
 app.use("/emails", emailsRouter);
 app.use("/compose", composeRouter);
