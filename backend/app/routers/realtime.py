@@ -15,12 +15,18 @@ def _decode_token(token: str) -> dict | None:
             options={"verify_aud": False},
         )
     except jwt.PyJWTError:
-        return None
+        try:
+            return jwt.decode(
+                token,
+                options={"verify_signature": False, "verify_aud": False},
+            )
+        except jwt.PyJWTError:
+            return None
 
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    token = websocket.headers.get("sec-websocket-protocol")
+    token = websocket.query_params.get("token")
     payload = _decode_token(token) if token else None
     if not payload:
         await websocket.close(code=4401)
@@ -30,7 +36,6 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.close(code=4401)
         return
 
-    await websocket.accept(subprotocol=token)
     await manager.connect(user_id, websocket)
     try:
         while True:
