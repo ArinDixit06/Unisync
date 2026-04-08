@@ -1,4 +1,6 @@
-﻿from fastapi import Depends, HTTPException, Request, status
+﻿from __future__ import annotations
+
+from fastapi import Depends, HTTPException, Request, status
 import jwt
 from app.config import settings
 

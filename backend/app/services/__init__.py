@@ -1,3 +1,1 @@
-﻿from . import gmail, outlook
-
-__all__ = ["gmail", "outlook"]
+﻿from __future__ import annotations

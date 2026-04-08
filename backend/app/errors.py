@@ -1,4 +1,6 @@
-﻿from fastapi import HTTPException, status
+﻿from __future__ import annotations
+
+from fastapi import HTTPException, status
 
 
 def bad_request(message: str, details: dict | None = None):
