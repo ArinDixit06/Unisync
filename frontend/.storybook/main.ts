@@ -3,8 +3,7 @@
 const config: StorybookConfig = {
   framework: "@storybook/react-vite",
   stories: ["../src/**/*.stories.@(ts|tsx)"],
-  addons: ["@storybook/addon-essentials", "@storybook/addon-themes"],
-  docs: { autodocs: true }
+  addons: ["@storybook/addon-themes"]
 }
 
 export default config
