@@ -27,10 +27,10 @@ const abortController = new AbortController();
 const corsOptions = {
   origin: frontendOrigins(),
   credentials: true,
-  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Authorization", "Content-Type"],
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] as string[],
+  allowedHeaders: ["Authorization", "Content-Type"] as string[],
   optionsSuccessStatus: 204
-} as const;
+};
 
 configureLogging();
 
