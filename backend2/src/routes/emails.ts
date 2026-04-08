@@ -20,7 +20,7 @@ function stripHtml(html: string): string {
   return load(html).text().replace(/\s+/g, " ").trim();
 }
 
-function hydrateEmail(row: Record<string, any>) {
+function hydrateEmail(row: Record<string, any>): Record<string, any> {
   return {
     ...row,
     body_html: decryptMailText(row.body_html_enc) || row.body_html || "",
@@ -115,8 +115,9 @@ router.get("/", async (request: AuthenticatedRequest, response, next) => {
 
 router.get("/thread/:threadId", async (request: AuthenticatedRequest, response, next) => {
   try {
+    const threadId = String(request.params.threadId)
     const rows = await select("emails", "*", {
-      filters: [["thread_id", "eq", request.params.threadId], ["user_id", "eq", request.currentUser!.userId]],
+      filters: [["thread_id", "eq", threadId], ["user_id", "eq", request.currentUser!.userId]],
       order: "received_at.asc",
       userToken: request.currentUser!.token
     });
@@ -128,25 +129,26 @@ router.get("/thread/:threadId", async (request: AuthenticatedRequest, response, 
 
 router.get("/:emailId", async (request: AuthenticatedRequest, response, next) => {
   try {
+    const emailId = String(request.params.emailId)
     const rows = await select("emails", "*,linked_accounts(provider,email_address)", {
-      filters: [["id", "eq", request.params.emailId], ["user_id", "eq", request.currentUser!.userId]],
+      filters: [["id", "eq", emailId], ["user_id", "eq", request.currentUser!.userId]],
       userToken: request.currentUser!.token
     });
     if (!rows.length) notFound("Email not found");
-    const result = hydrateEmail(rows[0]);
+    const result: Record<string, any> = hydrateEmail(rows[0]);
     const account = result.linked_accounts ?? {};
     delete result.linked_accounts;
     result.provider = account.provider;
     result.account_email = account.email_address;
     let events = await select("suggested_events", "*", {
-      filters: [["email_id", "eq", request.params.emailId], ["user_id", "eq", request.currentUser!.userId]],
+      filters: [["email_id", "eq", emailId], ["user_id", "eq", request.currentUser!.userId]],
       order: "created_at.desc",
       userToken: request.currentUser!.token
     });
     if (!events.length) {
       const detected = detectEvent(result.body_html || "", result.subject);
       if (detected) {
-        const created = await insert("suggested_events", { email_id: request.params.emailId, user_id: request.currentUser!.userId, ...detected }, {
+        const created = await insert("suggested_events", { email_id: emailId, user_id: request.currentUser!.userId, ...detected }, {
           userToken: request.currentUser!.token,
           returning: true
         });
@@ -162,13 +164,14 @@ router.get("/:emailId", async (request: AuthenticatedRequest, response, next) =>
 
 router.patch("/:emailId", async (request: AuthenticatedRequest, response, next) => {
   try {
+    const emailId = String(request.params.emailId)
     const values: Record<string, unknown> = {};
     for (const key of ["is_read", "is_starred", "is_archived"]) {
       if (request.body[key] !== undefined) values[key] = request.body[key];
     }
     if (Object.keys(values).length) {
       await update("emails", values, {
-        filters: [["id", "eq", request.params.emailId], ["user_id", "eq", request.currentUser!.userId]],
+        filters: [["id", "eq", emailId], ["user_id", "eq", request.currentUser!.userId]],
         userToken: request.currentUser!.token
       });
       await bumpUserCacheVersion(request.currentUser!.userId);
@@ -181,8 +184,9 @@ router.patch("/:emailId", async (request: AuthenticatedRequest, response, next) 
 
 router.delete("/:emailId", async (request: AuthenticatedRequest, response, next) => {
   try {
+    const emailId = String(request.params.emailId)
     await update("emails", { is_deleted: true }, {
-      filters: [["id", "eq", request.params.emailId], ["user_id", "eq", request.currentUser!.userId]],
+      filters: [["id", "eq", emailId], ["user_id", "eq", request.currentUser!.userId]],
       userToken: request.currentUser!.token
     });
     await bumpUserCacheVersion(request.currentUser!.userId);
@@ -194,8 +198,9 @@ router.delete("/:emailId", async (request: AuthenticatedRequest, response, next)
 
 router.post("/:emailId/snooze", async (request: AuthenticatedRequest, response, next) => {
   try {
+    const emailId = String(request.params.emailId)
     await update("emails", { is_snoozed: true, snoozed_until: request.body.snoozed_until }, {
-      filters: [["id", "eq", request.params.emailId], ["user_id", "eq", request.currentUser!.userId]],
+      filters: [["id", "eq", emailId], ["user_id", "eq", request.currentUser!.userId]],
       userToken: request.currentUser!.token
     });
     await bumpUserCacheVersion(request.currentUser!.userId);
@@ -207,8 +212,9 @@ router.post("/:emailId/snooze", async (request: AuthenticatedRequest, response, 
 
 router.delete("/:emailId/snooze", async (request: AuthenticatedRequest, response, next) => {
   try {
+    const emailId = String(request.params.emailId)
     await update("emails", { is_snoozed: false, snoozed_until: null }, {
-      filters: [["id", "eq", request.params.emailId], ["user_id", "eq", request.currentUser!.userId]],
+      filters: [["id", "eq", emailId], ["user_id", "eq", request.currentUser!.userId]],
       userToken: request.currentUser!.token
     });
     await bumpUserCacheVersion(request.currentUser!.userId);

@@ -38,11 +38,12 @@ router.post("/", async (request: AuthenticatedRequest, response, next) => {
 
 router.put("/:labelId", async (request: AuthenticatedRequest, response, next) => {
   try {
+    const labelId = String(request.params.labelId)
     await update(
       "labels",
       { name: request.body.name, color: request.body.color ?? "#64748b" },
       {
-        filters: [["id", "eq", request.params.labelId], ["user_id", "eq", request.currentUser!.userId]],
+        filters: [["id", "eq", labelId], ["user_id", "eq", request.currentUser!.userId]],
         userToken: request.currentUser!.token
       }
     );
@@ -55,8 +56,9 @@ router.put("/:labelId", async (request: AuthenticatedRequest, response, next) =>
 
 router.delete("/:labelId", async (request: AuthenticatedRequest, response, next) => {
   try {
+    const labelId = String(request.params.labelId)
     await remove("labels", {
-      filters: [["id", "eq", request.params.labelId], ["user_id", "eq", request.currentUser!.userId]],
+      filters: [["id", "eq", labelId], ["user_id", "eq", request.currentUser!.userId]],
       userToken: request.currentUser!.token
     });
     await bumpUserCacheVersion(request.currentUser!.userId);
@@ -76,10 +78,12 @@ async function ensureEmailExists(request: AuthenticatedRequest, emailId: string)
 
 router.post("/emails/:emailId/:labelId", async (request: AuthenticatedRequest, response, next) => {
   try {
-    await ensureEmailExists(request, request.params.emailId);
+    const emailId = String(request.params.emailId)
+    const labelId = String(request.params.labelId)
+    await ensureEmailExists(request, emailId);
     await insert(
       "email_labels",
-      { email_id: request.params.emailId, label_id: request.params.labelId },
+      { email_id: emailId, label_id: labelId },
       { userToken: request.currentUser!.token }
     );
     await bumpUserCacheVersion(request.currentUser!.userId);
@@ -91,9 +95,11 @@ router.post("/emails/:emailId/:labelId", async (request: AuthenticatedRequest, r
 
 router.delete("/emails/:emailId/:labelId", async (request: AuthenticatedRequest, response, next) => {
   try {
-    await ensureEmailExists(request, request.params.emailId);
+    const emailId = String(request.params.emailId)
+    const labelId = String(request.params.labelId)
+    await ensureEmailExists(request, emailId);
     await remove("email_labels", {
-      filters: [["email_id", "eq", request.params.emailId], ["label_id", "eq", request.params.labelId]],
+      filters: [["email_id", "eq", emailId], ["label_id", "eq", labelId]],
       userToken: request.currentUser!.token
     });
     await bumpUserCacheVersion(request.currentUser!.userId);

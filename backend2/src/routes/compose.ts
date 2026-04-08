@@ -184,6 +184,7 @@ router.post("/drafts", async (request: AuthenticatedRequest, response, next) => 
 
 router.put("/drafts/:draftId", async (request: AuthenticatedRequest, response, next) => {
   try {
+    const draftId = String(request.params.draftId)
     await update(
       "drafts",
       {
@@ -201,7 +202,7 @@ router.put("/drafts/:draftId", async (request: AuthenticatedRequest, response, n
         updated_at: new Date().toISOString()
       },
       {
-        filters: [["id", "eq", request.params.draftId], ["user_id", "eq", request.currentUser!.userId]],
+        filters: [["id", "eq", draftId], ["user_id", "eq", request.currentUser!.userId]],
         userToken: request.currentUser!.token
       }
     );
@@ -214,8 +215,9 @@ router.put("/drafts/:draftId", async (request: AuthenticatedRequest, response, n
 
 router.delete("/drafts/:draftId", async (request: AuthenticatedRequest, response, next) => {
   try {
+    const draftId = String(request.params.draftId)
     await remove("drafts", {
-      filters: [["id", "eq", request.params.draftId], ["user_id", "eq", request.currentUser!.userId]],
+      filters: [["id", "eq", draftId], ["user_id", "eq", request.currentUser!.userId]],
       userToken: request.currentUser!.token
     });
     await bumpUserCacheVersion(request.currentUser!.userId);

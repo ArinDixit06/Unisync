@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto";
 
-import Redis from "ioredis";
+import IORedis from "ioredis";
 
 import { settings } from "../config.js";
 
-let redis: Redis | null = null;
+let redis: IORedis | null = null;
 const memoryCache = new Map<string, { expiresAt: number; value: unknown }>();
 const memoryVersions = new Map<string, number>();
 const memoryLocks = new Map<string, number>();
@@ -14,9 +14,9 @@ function stableKey(prefix: string, payload: Record<string, unknown>): string {
   return `${prefix}:${digest}`;
 }
 
-function getRedis(): Redis | null {
+function getRedis(): IORedis | null {
   if (!settings.useRedis || !settings.redisUrl) return null;
-  if (!redis) redis = new Redis(settings.redisUrl);
+  if (!redis) redis = new IORedis(settings.redisUrl);
   return redis;
 }
 

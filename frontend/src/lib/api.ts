@@ -1,6 +1,6 @@
 ﻿import { useAuthStore } from "../stores/authStore"
 
-const DEFAULT_PRODUCTION_API_BASE_URL = "https://unisync-pztl.onrender.com"
+const DEFAULT_PRODUCTION_API_BASE_URL = "https://unisync-3kk2.onrender.com"
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || (import.meta.env.PROD ? DEFAULT_PRODUCTION_API_BASE_URL : "")
 

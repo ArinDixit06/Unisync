@@ -17,8 +17,9 @@ router.use(requireUser);
 
 router.post("/account/:accountId", async (request: AuthenticatedRequest, response, next) => {
   try {
+    const accountId = String(request.params.accountId)
     const accounts = await select("linked_accounts", "id,provider,access_token_enc", {
-      filters: [["id", "eq", request.params.accountId], ["user_id", "eq", request.currentUser!.userId]],
+      filters: [["id", "eq", accountId], ["user_id", "eq", request.currentUser!.userId]],
       userToken: request.currentUser!.token
     });
     if (!accounts.length) notFound("Account not found");

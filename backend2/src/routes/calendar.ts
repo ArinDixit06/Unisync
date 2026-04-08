@@ -13,8 +13,9 @@ router.use(requireUser);
 
 router.post("/events/:eventId/confirm", async (request: AuthenticatedRequest, response, next) => {
   try {
+    const eventId = String(request.params.eventId)
     const events = await select("suggested_events", "*", {
-      filters: [["id", "eq", request.params.eventId], ["user_id", "eq", request.currentUser!.userId]],
+      filters: [["id", "eq", eventId], ["user_id", "eq", request.currentUser!.userId]],
       userToken: request.currentUser!.token
     });
     if (!events.length) notFound("Suggested event not found");
@@ -50,7 +51,7 @@ router.post("/events/:eventId/confirm", async (request: AuthenticatedRequest, re
     await update(
       "suggested_events",
       { confirmed_at: new Date().toISOString(), gcal_event_id: result.id },
-      { filters: [["id", "eq", request.params.eventId]], userToken: request.currentUser!.token }
+      { filters: [["id", "eq", eventId]], userToken: request.currentUser!.token }
     );
     response.json({ status: "ok", event_id: result.id });
   } catch (error) {
@@ -60,11 +61,12 @@ router.post("/events/:eventId/confirm", async (request: AuthenticatedRequest, re
 
 router.delete("/events/:eventId", async (request: AuthenticatedRequest, response, next) => {
   try {
+    const eventId = String(request.params.eventId)
     await update(
       "suggested_events",
       { dismissed_at: new Date().toISOString() },
       {
-        filters: [["id", "eq", request.params.eventId], ["user_id", "eq", request.currentUser!.userId]],
+        filters: [["id", "eq", eventId], ["user_id", "eq", request.currentUser!.userId]],
         userToken: request.currentUser!.token
       }
     );
