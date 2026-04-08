@@ -9,6 +9,7 @@ export function Topbar({
   unreadCount,
   syncDisabled,
   syncLoading,
+  syncAnnouncement,
   onToggleSidebar
 }: {
   onCompose: () => void
@@ -18,10 +19,14 @@ export function Topbar({
   unreadCount?: number
   syncDisabled?: boolean
   syncLoading?: boolean
+  syncAnnouncement?: string
   onToggleSidebar?: () => void
 }) {
   return (
     <header className="col-span-full flex items-center justify-between gap-4 border-b border-gray-200/70 bg-white px-4 py-3 shadow-sm lg:col-start-2 lg:col-end-4">
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {syncAnnouncement || "Mail sync ready"}
+      </div>
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -78,4 +83,3 @@ export function Topbar({
     </header>
   )
 }
-

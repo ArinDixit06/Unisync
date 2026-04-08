@@ -266,6 +266,7 @@ export function Dashboard() {
 
   const activeAccount =
     accountOptions.find((account) => account.id === (activeAccountId || "all")) || accountOptions[0]
+  const syncAnnouncement = syncing ? "Syncing mailbox" : "Mail sync ready"
 
   return (
     <AppShell
@@ -301,12 +302,13 @@ export function Dashboard() {
           showConnectGmail={!linkedAccounts.length}
           syncDisabled={!linkedAccounts.length || syncing}
           syncLoading={syncing}
+          syncAnnouncement={syncAnnouncement}
           onToggleSidebar={() => setState({ sidebarOpen: !sidebarOpen })}
           unreadCount={activeFilter === "drafts" ? 0 : emails.filter((email: any) => !email.is_read).length}
         />
       }
       list={
-        <div className="h-full border-r border-gray-200/70 bg-white">
+        <div id="mail-list" className="h-full border-r border-gray-200/70 bg-white" tabIndex={-1}>
           <MailList
             emails={emails}
             selectedEmailId={selectedEmailId}
@@ -331,6 +333,9 @@ export function Dashboard() {
           className={`fixed inset-0 z-20 bg-[var(--color-bg-base)] transition duration-200 ease-out lg:static lg:inset-auto lg:z-auto lg:h-full lg:translate-x-0 ${
             selectedEmailId ? "translate-x-0" : "translate-x-full lg:translate-x-0"
           }`}
+          role="region"
+          aria-label="Email preview"
+          aria-selected={Boolean(selectedEmailId)}
         >
           <div className="h-full border-l border-gray-200/70 bg-white">
             <MailPreview

@@ -2,7 +2,7 @@
 import clsx from "clsx"
 import "./primitives.css"
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "prefix"> {
   label?: string
   error?: boolean
   prefix?: React.ReactNode

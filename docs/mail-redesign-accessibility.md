@@ -17,6 +17,5 @@
 - Labels: all icon-only controls include `aria-label`.
 
 ## Remaining Recommendations
-- Add `aria-live="polite"` for sync status updates.
-- Provide `aria-selected` on the preview container when open.
-- Add visible "Skip to list" link for screen reader users.
+- The listed accessibility recommendations are now implemented in the shell and header.
+- Keep checking any future layout changes against the checklist above.
