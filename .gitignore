@@ -8,6 +8,7 @@ __pycache__/
 
 # Build output
 frontend/dist/
+frontend/.next/
 backend/.pytest_cache/
 
 # OS

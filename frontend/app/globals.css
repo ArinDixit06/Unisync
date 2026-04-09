@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --reader-bg: #ffffff;
+    --mail-list-bg: #fafafa;
+    --app-bg: #f3f5f4;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --reader-bg: #0f0f0f;
+    --mail-list-bg: #161616;
+    --app-bg: #0a0a0a;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at top left, rgba(34, 201, 135, 0.08), transparent 28%),
+      linear-gradient(180deg, rgba(17, 17, 17, 0.02), transparent 18%),
+      var(--app-bg);
+    color: theme("colors.text-primary");
+    font-family: var(--font-dm-sans), sans-serif;
+    text-rendering: optimizeLegibility;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  input,
+  textarea {
+    font: inherit;
+  }
+
+  ::selection {
+    background: rgba(34, 201, 135, 0.2);
+  }
+}
+
+@layer utilities {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0f0f0f];
+  }
+
+  .surface-grid {
+    background-image:
+      linear-gradient(rgba(17, 17, 17, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(17, 17, 17, 0.03) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  .dark .surface-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(153, 153, 153, 0.35);
+    border-radius: 9999px;
+  }
+}

@@ -1,0 +1,12 @@
+import { Inbox } from "lucide-react"
+import { EmptyState } from "@/components/common/EmptyState"
+import { copy } from "@/lib/copy"
+
+/**
+ * Props for the mail list empty state.
+ */
+export interface MailListEmptyProps {}
+
+export function MailListEmpty(_: MailListEmptyProps) {
+  return <EmptyState title={copy.list.emptyTitle} description={copy.list.emptyDescription} icon={<Inbox className="h-7 w-7" />} />
+}
