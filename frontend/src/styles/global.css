@@ -1,25 +1,46 @@
-@import url("./tokens.css");
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif:ital@1&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: light;
+    --reader-bg: #ffffff;
+    --mail-list-bg: #fafafa;
+    --app-bg: #f3f5f4;
+    --font-dm-sans: "DM Sans";
+    --font-instrument-serif: "Instrument Serif";
+  }
+
+  .dark {
+    color-scheme: dark;
+    --reader-bg: #0f0f0f;
+    --mail-list-bg: #161616;
+    --app-bg: #0a0a0a;
+  }
+
   * {
     box-sizing: border-box;
   }
 
-  html {
-    font-size: 16px;
-    line-height: 1.4;
+  html,
+  body,
+  #root {
+    min-height: 100%;
   }
 
   body {
     margin: 0;
-    font-family: var(--font-ui);
-    background: var(--color-bg-base);
-    color: var(--color-text-primary);
     min-height: 100vh;
+    background:
+      radial-gradient(circle at top left, rgba(34, 201, 135, 0.08), transparent 28%),
+      linear-gradient(180deg, rgba(17, 17, 17, 0.02), transparent 18%),
+      var(--app-bg);
+    color: theme("colors.text-primary");
+    font-family: var(--font-dm-sans), sans-serif;
+    text-rendering: optimizeLegibility;
   }
 
   a {
@@ -30,41 +51,43 @@
   button,
   input,
   textarea {
-    font-family: inherit;
+    font: inherit;
   }
 
-  #root {
-    min-height: 100vh;
+  ::selection {
+    background: rgba(34, 201, 135, 0.2);
   }
 }
 
 @layer utilities {
-  .fade-in {
-    animation: fadeIn var(--duration-slow) var(--ease-out);
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0f0f0f];
   }
 
-  .email-html img {
-    max-width: 100%;
-    height: auto;
+  .surface-grid {
+    background-image:
+      linear-gradient(rgba(17, 17, 17, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(17, 17, 17, 0.03) 1px, transparent 1px);
+    background-size: 28px 28px;
   }
 
-  .email-html a:not([style]) {
-    color: #2563eb;
-    text-decoration: underline;
+  .dark .surface-grid {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
   }
 
-  .email-html table {
-    max-width: 100%;
+  .scrollbar-thin {
+    scrollbar-width: thin;
   }
 
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(153, 153, 153, 0.35);
+    border-radius: 9999px;
   }
 }

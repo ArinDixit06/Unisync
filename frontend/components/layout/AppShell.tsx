@@ -15,9 +15,7 @@ import { cn } from "@/lib/utils"
 /**
  * Props for the UniSync application shell.
  */
-export interface AppShellProps {}
-
-export function AppShell(_: AppShellProps) {
+export function AppShell() {
   const [mobileReaderOpen, setMobileReaderOpen] = useState(false)
   const {
     selectedEmailId,

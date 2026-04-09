@@ -13,9 +13,7 @@ const tools = [
 /**
  * Props for the compose formatting toolbar.
  */
-export interface ComposeToolbarProps {}
-
-export function ComposeToolbar(_: ComposeToolbarProps) {
+export function ComposeToolbar() {
   return (
     <div className="flex items-center gap-2 border-t border-border px-4 py-3 dark:border-white/10">
       {tools.map((tool) => (

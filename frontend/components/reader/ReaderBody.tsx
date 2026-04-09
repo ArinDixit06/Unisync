@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import { ExternalLink, ImageOff } from "lucide-react"
 import type { EmailRecord } from "@/lib/types"
 import { copy } from "@/lib/copy"
@@ -53,7 +52,7 @@ export function ReaderBody({ email, showImages, onLoadImages }: ReaderBodyProps)
             <div className="grid gap-4 sm:grid-cols-2">
               {email.images.map((image) => (
                 <div key={image.src} className="overflow-hidden rounded-xl border border-border dark:border-white/10">
-                  <Image alt={image.alt} className="h-full w-full object-cover" height={420} src={image.src} unoptimized width={720} />
+                  <img alt={image.alt} className="h-full w-full object-cover" height={420} loading="lazy" src={image.src} width={720} />
                 </div>
               ))}
             </div>
