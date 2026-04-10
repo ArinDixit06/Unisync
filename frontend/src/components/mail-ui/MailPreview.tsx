@@ -68,7 +68,7 @@ export function MailPreview({
       : null
 
   return (
-    <article className="flex h-full flex-col overflow-hidden">
+    <article className="flex h-full w-full min-w-0 flex-1 flex-col overflow-hidden">
       <div className="flex items-center gap-2 border-b border-gray-200/70 bg-white px-4 py-3 lg:px-6">
         {onClose ? (
           <button
@@ -151,7 +151,7 @@ export function MailPreview({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto py-4">
+      <div className="flex-1 w-full min-w-0 overflow-y-auto py-4">
         {events.length ? (
           <div className="mb-5 border-y border-blue-200 bg-blue-50/70 px-4 py-5 lg:px-6">
             <div className="mb-2 text-sm font-semibold text-blue-900">Event detected</div>

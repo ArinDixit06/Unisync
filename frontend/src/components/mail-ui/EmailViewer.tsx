@@ -121,7 +121,7 @@ export function EmailViewer({ email }: { email: any }) {
 
   return (
     <div className="email-html w-full px-4 py-4 lg:px-6">
-      <div dangerouslySetInnerHTML={{ __html: html }} />
+      <div className="w-full min-w-0" dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   )
 }
