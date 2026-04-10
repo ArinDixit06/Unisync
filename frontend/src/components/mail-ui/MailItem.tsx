@@ -6,6 +6,7 @@ export function MailItem({
   preview,
   time,
   priority,
+  sourceLabel,
   unread,
   checked,
   selected,
@@ -20,6 +21,7 @@ export function MailItem({
   preview: string
   time: string
   priority?: "high" | "medium" | "low" | string | null
+  sourceLabel?: string | null
   unread?: boolean
   checked?: boolean
   selected?: boolean
@@ -73,6 +75,7 @@ export function MailItem({
           <span className="shrink-0 text-xs text-gray-400">{time}</span>
         </div>
         <div className="truncate text-sm font-medium text-gray-700">{subject}</div>
+        {sourceLabel ? <div className="truncate text-[11px] font-medium text-gray-400">{sourceLabel}</div> : null}
         <div className="flex min-w-0 items-center gap-2">
           <span className="min-w-0 truncate text-xs text-gray-500">{preview}</span>
           {priority ? (

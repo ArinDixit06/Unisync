@@ -3,6 +3,11 @@ import { EmptyState } from "./EmptyState"
 import { EmailViewer } from "./EmailViewer"
 import { safeParseJsonArray } from "../../lib/json"
 
+function normalizeRiskReasons(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((item) => String(item)).filter(Boolean)
+  return []
+}
+
 export function MailPreview({
   email,
   onArchive,
@@ -33,8 +38,28 @@ export function MailPreview({
   }
 
   const bullets = safeParseJsonArray(email.summary_bullets)
-
+  const riskReasons = normalizeRiskReasons(email.risk_reasons)
   const events = email.suggested_events || []
+  const riskTone =
+    email.risk_level === "high"
+      ? {
+          box: "border-rose-200 bg-rose-50 text-rose-700",
+          title: "High risk",
+          message: "This message looks risky. Verify the sender before replying, opening links, or downloading files."
+        }
+      : email.risk_level === "medium"
+      ? {
+          box: "border-amber-200 bg-amber-50 text-amber-700",
+          title: "Medium risk",
+          message: "This message has warning signs. Double-check the sender and any requested action."
+        }
+      : email.risk_level
+      ? {
+          box: "border-emerald-200 bg-emerald-50 text-emerald-700",
+          title: "Low risk",
+          message: "No major phishing indicators were detected, but normal caution still applies."
+        }
+      : null
 
   return (
     <article className="flex h-full flex-col overflow-hidden">
@@ -46,6 +71,9 @@ export function MailPreview({
           <p className="text-sm text-gray-500">
             {email.sender_name} &lt;{email.sender_email}&gt;
           </p>
+          {email.account_email ? (
+            <p className="mt-1 text-xs font-medium text-gray-400">Received in {email.account_email}</p>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -122,9 +150,17 @@ export function MailPreview({
           </div>
         ) : null}
 
-        {email.risk_level ? (
-          <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-            High risk detected. Review before replying.
+        {riskTone ? (
+          <div className={`mb-4 rounded-2xl border p-4 text-sm ${riskTone.box}`}>
+            <p className="font-semibold">{riskTone.title}</p>
+            <p className="mt-1">{riskTone.message}</p>
+            {riskReasons.length ? (
+              <ul className="mt-3 list-disc space-y-1 pl-4 text-xs">
+                {riskReasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            ) : null}
           </div>
         ) : null}
 

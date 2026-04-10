@@ -7,12 +7,13 @@ import { settings } from "../config.js";
 import { encrypt } from "../crypto.js";
 import { badRequest, notFound } from "../errors.js";
 import { RateLimiter, ipKey, rateLimit } from "../rateLimit.js";
-import { remove, insert, select } from "../supabaseRest.js";
+import { remove, insert, select, update } from "../supabaseRest.js";
 import { exchangeCode as exchangeGmailCode, gmailAuthUrl, watchInbox } from "../services/gmail.js";
 import { createSubscription, exchangeCode as exchangeOutlookCode, outlookAuthUrl } from "../services/outlook.js";
 
 const router = Router();
 const authLimiter = new RateLimiter(10, "auth");
+const MAX_GMAIL_ACCOUNTS = 3;
 
 router.use(rateLimit(authLimiter, ipKey));
 
@@ -50,19 +51,41 @@ async function handleGmailCallback(code: string, state: string): Promise<string>
     headers: { Authorization: `Bearer ${accessToken}` }
   });
   const profile = await profileResponse.json();
-  const accountId = randomUUID();
-  await insert(
-    "linked_accounts",
-    {
-      id: accountId,
-      user_id: userId,
-      provider: "gmail",
-      email_address: profile.emailAddress,
-      access_token_enc: encrypt(accessToken),
-      refresh_token_enc: encrypt(tokens.refresh_token || "")
-    },
-    { useService: true }
-  );
+  const emailAddress = String(profile.emailAddress ?? "").trim().toLowerCase();
+  if (!emailAddress) badRequest("Unable to determine Gmail account email address");
+  const existingAccounts = await select("linked_accounts", "id,email_address,refresh_token_enc", {
+    filters: [["user_id", "eq", userId], ["provider", "eq", "gmail"]],
+    useService: true
+  });
+  const existing = existingAccounts.find((account) => String(account.email_address ?? "").trim().toLowerCase() === emailAddress);
+  if (!existing && existingAccounts.length >= MAX_GMAIL_ACCOUNTS) {
+    badRequest(`You can connect up to ${MAX_GMAIL_ACCOUNTS} Gmail accounts.`);
+  }
+  const accountId = existing?.id ?? randomUUID();
+  const refreshTokenValue = tokens.refresh_token || (existing?.refresh_token_enc ? "" : "");
+  if (existing) {
+    await update(
+      "linked_accounts",
+      {
+        access_token_enc: encrypt(accessToken),
+        refresh_token_enc: tokens.refresh_token ? encrypt(tokens.refresh_token) : (existing.refresh_token_enc || encrypt(""))
+      },
+      { filters: [["id", "eq", existing.id]], useService: true }
+    );
+  } else {
+    await insert(
+      "linked_accounts",
+      {
+        id: accountId,
+        user_id: userId,
+        provider: "gmail",
+        email_address: emailAddress,
+        access_token_enc: encrypt(accessToken),
+        refresh_token_enc: encrypt(refreshTokenValue)
+      },
+      { useService: true }
+    );
+  }
   await watchInbox(accessToken);
   return accountId;
 }

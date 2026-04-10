@@ -27,6 +27,7 @@ export function Dashboard() {
     enabled: Boolean(accessToken)
   })
   const linkedAccounts = accountsData?.accounts || []
+  const gmailAccounts = linkedAccounts.filter((account: any) => account.provider === "gmail")
 
   const { data: labelsData } = useQuery({
     queryKey: ["labels"],
@@ -292,7 +293,7 @@ export function Dashboard() {
           onCompose={() => setComposeOpen(true)}
           onSync={handleSync}
           onConnectGmail={handleConnectGmail}
-          showConnectGmail={!linkedAccounts.length}
+          showConnectGmail={gmailAccounts.length < 3}
           syncDisabled={!linkedAccounts.length || syncing}
           syncLoading={syncing}
           onToggleSidebar={() => setState({ sidebarOpen: !sidebarOpen })}

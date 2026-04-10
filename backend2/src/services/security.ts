@@ -1,5 +1,6 @@
 const DISPOSABLE_DOMAINS = new Set(["mailinator.com", "10minutemail.com", "guerrillamail.com", "tempmail.com", "yopmail.com"]);
 const SHORTENER_DOMAINS = new Set(["bit.ly", "tinyurl.com", "t.co", "goo.gl", "buff.ly", "ow.ly"]);
+const TRUSTED_STUDENT_DOMAINS = [".edu", ".ac.in", ".edu.in"];
 const SUSPICIOUS_KEYWORDS = [
   "password reset",
   "verify your account",
@@ -11,7 +12,17 @@ const SUSPICIOUS_KEYWORDS = [
   "urgent action",
   "click below",
   "suspend",
-  "invoice attached"
+  "invoice attached",
+  "verify now",
+  "confirm your identity",
+  "your account will be closed",
+  "reset within 24 hours",
+  "payment failed",
+  "unusual sign in",
+  "unauthorized login",
+  "purchase gift cards",
+  "bank details",
+  "wire instructions"
 ];
 const HIGH_PRIORITY_KEYWORDS = [
   "deadline",
@@ -34,8 +45,23 @@ function domainFromEmail(address: string): string {
   return address.includes("@") ? address.split("@", 2)[1].toLowerCase().trim() : "";
 }
 
+function rootDomain(host: string): string {
+  const normalized = host.toLowerCase().trim();
+  const parts = normalized.split(".").filter(Boolean);
+  if (parts.length <= 2) return normalized;
+  return parts.slice(-2).join(".");
+}
+
 function extractLinks(html: string): string[] {
   return Array.from(html.matchAll(/https?:\/\/[^\s"'<>]+/g)).map((match) => match[0]);
+}
+
+function includesSuspiciousUnicode(value: string): boolean {
+  return /[\u200B-\u200F\u202A-\u202E]/.test(value);
+}
+
+function hasTrustedAcademicDomain(domain: string): boolean {
+  return TRUSTED_STUDENT_DOMAINS.some((suffix) => domain.endsWith(suffix));
 }
 
 export function sanitizeHeaders(headers: Record<string, unknown> | null | undefined): Record<string, string> {
@@ -56,27 +82,51 @@ export function deterministicRisk(
   subject?: string | null,
   bodyHtml?: string | null
 ): [string, string[]] {
-  let risk = "low";
+  let riskScore = 0;
   const reasons: string[] = [];
   const domain = domainFromEmail(senderEmail);
   if (DISPOSABLE_DOMAINS.has(domain)) {
-    risk = "high";
+    riskScore += 4;
     reasons.push("Disposable sender domain");
   }
   if (senderName && ["support", "admin", "security", "billing"].includes(senderName.toLowerCase().trim())) {
-    if (risk === "low") risk = "medium";
+    riskScore += 1;
     reasons.push("Generic sender display name");
   }
   const lowerHeaders = Object.fromEntries(Object.entries(headers ?? {}).map(([key, value]) => [key.toLowerCase(), String(value).toLowerCase()]));
   if ((lowerHeaders["received-spf"] ?? "").includes("fail") || (lowerHeaders["authentication-results"] ?? "").includes("fail")) {
-    risk = "high";
+    riskScore += 4;
     reasons.push("SPF or DKIM failure");
+  }
+  const replyTo = String(lowerHeaders["reply-to"] ?? "");
+  const returnPath = String(lowerHeaders["return-path"] ?? "");
+  const replyToDomain = domainFromEmail(replyTo);
+  const returnPathDomain = domainFromEmail(returnPath);
+  if (replyToDomain && domain && rootDomain(replyToDomain) !== rootDomain(domain)) {
+    riskScore += 2;
+    reasons.push("Reply-to domain does not match sender");
+  }
+  if (returnPathDomain && domain && rootDomain(returnPathDomain) !== rootDomain(domain)) {
+    riskScore += 2;
+    reasons.push("Return-path domain does not match sender");
   }
   const textBlob = `${subject ?? ""} ${bodyHtml ?? ""}`.toLowerCase();
   const hits = SUSPICIOUS_KEYWORDS.filter((keyword) => textBlob.includes(keyword));
   if (hits.length) {
-    if (risk === "low") risk = "medium";
+    riskScore += hits.length >= 3 ? 3 : 2;
     reasons.push(`Suspicious language: ${hits.slice(0, 3).join(", ")}`);
+  }
+  if (includesSuspiciousUnicode(`${senderName ?? ""} ${subject ?? ""}`)) {
+    riskScore += 2;
+    reasons.push("Contains hidden or spoofing characters");
+  }
+  if (senderName && domain) {
+    const normalizedName = senderName.toLowerCase();
+    const academicLooking = /(university|college|registrar|financial aid|student services|it help|security)/.test(normalizedName);
+    if (academicLooking && !hasTrustedAcademicDomain(domain)) {
+      riskScore += 3;
+      reasons.push("Sender claims institution identity from non-academic domain");
+    }
   }
   for (const link of extractLinks(bodyHtml ?? "").slice(0, 10)) {
     let host = "";
@@ -85,12 +135,28 @@ export function deterministicRisk(
     } catch {
       continue;
     }
-    if (link.startsWith("http://")) reasons.push("Contains non-HTTPS link");
-    if (SHORTENER_DOMAINS.has(host)) reasons.push("Contains shortened link");
-    if (host.includes("xn--")) reasons.push("Contains punycode link");
-    if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(host)) reasons.push("Contains direct IP link");
+    if (link.startsWith("http://")) {
+      riskScore += 2;
+      reasons.push("Contains non-HTTPS link");
+    }
+    if (SHORTENER_DOMAINS.has(host)) {
+      riskScore += 2;
+      reasons.push("Contains shortened link");
+    }
+    if (host.includes("xn--")) {
+      riskScore += 3;
+      reasons.push("Contains punycode link");
+    }
+    if (/^(?:\d{1,3}\.){3}\d{1,3}$/.test(host)) {
+      riskScore += 4;
+      reasons.push("Contains direct IP link");
+    }
+    if (domain && rootDomain(host) !== rootDomain(domain) && /(login|verify|secure|account|auth|signin|reset|update)/.test(link.toLowerCase())) {
+      riskScore += 2;
+      reasons.push("Link domain differs from sender domain");
+    }
   }
-  if (reasons.includes("Contains direct IP link")) risk = "high";
+  const risk = riskScore >= 6 ? "high" : riskScore >= 3 ? "medium" : "low";
   return [risk, Array.from(new Set(reasons)).slice(0, 5)];
 }
 

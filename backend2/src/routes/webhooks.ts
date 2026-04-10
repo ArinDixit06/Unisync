@@ -1,17 +1,35 @@
 import { Router } from "express";
 
-import { decrypt } from "../crypto.js";
+import { decrypt, encrypt } from "../crypto.js";
 import { badRequest } from "../errors.js";
 import { enqueueJob } from "../queue.js";
 import { bumpUserCacheVersion } from "../services/cache.js";
-import { fetchAttachment, fetchHistory, fetchMessage as fetchGmailMessage } from "../services/gmail.js";
+import { fetchAttachment, fetchHistory, fetchMessage as fetchGmailMessage, refreshToken as refreshGmailToken } from "../services/gmail.js";
 import { parseGmailMessage, parseOutlookMessage } from "../services/email.js";
 import { fetchMessage as fetchOutlookMessage } from "../services/outlook.js";
 import { storeEmail } from "../services/store.js";
-import { select } from "../supabaseRest.js";
+import { select, update } from "../supabaseRest.js";
 import { verifySignature } from "../webhookSecurity.js";
 
 const router = Router();
+
+async function withFreshGmailAccessToken(account: Record<string, any>, fn: (accessToken: string) => Promise<any>) {
+  let accessToken = decrypt(account.access_token_enc);
+  const refreshToken = decrypt(account.refresh_token_enc || "");
+  try {
+    return await fn(accessToken);
+  } catch (error: any) {
+    if (![401, 403].includes(Number(error?.status)) || !refreshToken) throw error;
+    const refreshed = await refreshGmailToken(refreshToken);
+    accessToken = refreshed.access_token || "";
+    if (!accessToken) badRequest("Gmail token expired. Please reconnect Gmail.");
+    await update("linked_accounts", { access_token_enc: encrypt(accessToken) }, {
+      filters: [["id", "eq", account.id]],
+      useService: true
+    });
+    return fn(accessToken);
+  }
+}
 
 router.post("/gmail", async (request, response, next) => {
   try {
@@ -28,7 +46,7 @@ router.post("/gmail", async (request, response, next) => {
       response.json({ status: "ok" });
       return;
     }
-    const accounts = await select("linked_accounts", "id,user_id,access_token_enc", {
+    const accounts = await select("linked_accounts", "id,user_id,access_token_enc,refresh_token_enc", {
       filters: [["provider", "eq", "gmail"], ["email_address", "eq", event.emailAddress]],
       useService: true
     });
@@ -37,19 +55,20 @@ router.post("/gmail", async (request, response, next) => {
       return;
     }
     const account = accounts[0];
-    const accessToken = decrypt(account.access_token_enc);
-    const history = await fetchHistory(accessToken, event.historyId);
-    for (const item of history.history ?? []) {
-      for (const added of item.messagesAdded ?? []) {
-        const messageId = added?.message?.id;
-        if (!messageId) continue;
-        const raw = await fetchGmailMessage(accessToken, messageId);
-        const parsed = await parseGmailMessage(raw, (attachmentId) => fetchAttachment(accessToken, messageId, attachmentId));
-        const emailId = await storeEmail(account.user_id, account.id, { ...parsed, provider: "gmail" });
-        await enqueueJob("process_email", emailId);
-        await bumpUserCacheVersion(account.user_id);
+    await withFreshGmailAccessToken(account, async (accessToken) => {
+      const history = await fetchHistory(accessToken, event.historyId);
+      for (const item of history.history ?? []) {
+        for (const added of item.messagesAdded ?? []) {
+          const messageId = added?.message?.id;
+          if (!messageId) continue;
+          const raw = await fetchGmailMessage(accessToken, messageId);
+          const parsed = await parseGmailMessage(raw, (attachmentId) => fetchAttachment(accessToken, messageId, attachmentId));
+          const emailId = await storeEmail(account.user_id, account.id, { ...parsed, provider: "gmail" });
+          await enqueueJob("process_email", emailId);
+          await bumpUserCacheVersion(account.user_id);
+        }
       }
-    }
+    });
     response.json({ status: "ok" });
   } catch (error) {
     next(error);

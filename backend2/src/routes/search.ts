@@ -32,7 +32,7 @@ router.get("/", async (request: AuthenticatedRequest, response, next) => {
           ["user_id", "eq", request.currentUser!.userId],
           ["search_vector", "fts", `english.${normalizedQ}`]
         ],
-        order: "priority_level.desc.nullslast,risk_level.desc.nullslast,received_at.desc",
+        order: "received_at.desc",
         limit,
         userToken: request.currentUser!.token
       }

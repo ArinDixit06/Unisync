@@ -155,6 +155,7 @@ export function MailList({
                   preview={email.preview_snippet || ""}
                   time={formatDistanceToNow(new Date(email.received_at), { addSuffix: true })}
                   priority={email.priority_level || email.risk_level}
+                  sourceLabel={email.account_email ? `Delivered to ${email.account_email}` : null}
                   unread={!email.is_read}
                   checked={Boolean(multiSelect[email.id])}
                   selected={selectedEmailId === email.id}

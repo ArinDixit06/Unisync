@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { useEditor, EditorContent } from "@tiptap/react"
+import { useQueryClient } from "@tanstack/react-query"
 import StarterKit from "@tiptap/starter-kit"
 import Underline from "@tiptap/extension-underline"
 import Link from "@tiptap/extension-link"
@@ -10,7 +11,8 @@ import "./compose.css"
 
 export function ComposeModal({ onClose }: { onClose: () => void }) {
   const { linkedAccounts } = useAuthStore()
-  const accountId = linkedAccounts[0]?.id
+  const queryClient = useQueryClient()
+  const [accountId, setAccountId] = useState("")
   const [to, setTo] = useState("")
   const [cc, setCc] = useState("")
   const [bcc, setBcc] = useState("")
@@ -26,6 +28,14 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
     extensions: [StarterKit, Underline, Link],
     content: ""
   })
+
+  useEffect(() => {
+    if (!linkedAccounts.length) {
+      setAccountId("")
+      return
+    }
+    setAccountId((current) => current && linkedAccounts.some((account) => account.id === current) ? current : linkedAccounts[0].id)
+  }, [linkedAccounts])
 
   const clearTimers = () => {
     if (sendTimeoutRef.current) window.clearTimeout(sendTimeoutRef.current)
@@ -67,7 +77,12 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
       .filter((item) => item.includes("@"))
 
   const sendNow = async () => {
-    if (!accountId) return
+    if (!accountId) {
+      alert("Choose which connected mailbox you want to send from.")
+      setIsSending(false)
+      setCountdown(5)
+      return
+    }
     try {
       const html = editor?.getHTML() || ""
       const attachmentPayload = await buildAttachmentPayload()
@@ -92,6 +107,8 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
           attachments: attachmentPayload
         })
       })
+      queryClient.invalidateQueries({ queryKey: ["emails"] })
+      queryClient.invalidateQueries({ queryKey: ["drafts"] })
       onClose()
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to send email."
@@ -127,6 +144,24 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
         <button className="compose-close" onClick={onClose} type="button">Close</button>
       </div>
       <div className="compose-body">
+        <label className="primitive-field">
+          <span className="primitive-label">From</span>
+          <select
+            value={accountId}
+            onChange={(event) => setAccountId(event.target.value)}
+            className="primitive-input"
+          >
+            {linkedAccounts.length ? (
+              linkedAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {(account.display_name || account.email_address || account.provider || "Account")} {account.email_address ? `(${account.email_address})` : ""}
+                </option>
+              ))
+            ) : (
+              <option value="">No connected account</option>
+            )}
+          </select>
+        </label>
         <Input label="To" value={to} onChange={(e) => setTo(e.target.value)} />
         <div style={{ display: "flex", gap: 8 }}>
           <Button size="sm" variant="ghost" onClick={() => setShowCc((prev) => !prev)}>CC</Button>

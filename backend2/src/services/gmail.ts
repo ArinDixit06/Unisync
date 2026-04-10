@@ -29,7 +29,7 @@ export function gmailAuthUrl(state: string): string {
     redirect_uri: gmailRedirect(),
     response_type: "code",
     access_type: "offline",
-    prompt: "consent",
+    prompt: "consent select_account",
     scope: GMAIL_SCOPES.join(" "),
     state
   });

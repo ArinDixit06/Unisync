@@ -94,7 +94,7 @@ router.get("/", async (request: AuthenticatedRequest, response, next) => {
       "id,thread_id,subject,sender_name,sender_email,preview_snippet,received_at,is_read,is_starred,is_archived,is_snoozed,snoozed_until,has_attachments,processing_status,risk_level,priority_level,category,account_id,linked_accounts(provider,email_address)",
       {
         filters,
-        order: "priority_level.desc.nullslast,risk_level.desc.nullslast,received_at.desc",
+        order: "received_at.desc",
         limit,
         offset,
         userToken: request.currentUser!.token
