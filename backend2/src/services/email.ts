@@ -27,6 +27,11 @@ function decodePart(data: string, transferEncoding?: string | null): string {
   }
 }
 
+function normalizeBase64Url(data: string): string {
+  const padded = data + "=".repeat((4 - (data.length % 4 || 4)) % 4);
+  return Buffer.from(padded, "base64url").toString("base64");
+}
+
 function getTransferEncoding(part: any): string | null {
   for (const header of part?.headers ?? []) {
     if (String(header?.name ?? "").toLowerCase() === "content-transfer-encoding") {
@@ -45,6 +50,24 @@ async function getPartData(part: any, fetchAttachment: ((attachmentId: string) =
     try {
       const attachmentData = await fetchAttachment(attachmentId);
       return attachmentData ? decodePart(attachmentData, encoding) : "";
+    } catch {
+      return "";
+    }
+  }
+  return "";
+}
+
+async function getPartBinaryBase64(
+  part: any,
+  fetchAttachment: ((attachmentId: string) => Promise<string>) | null
+): Promise<string> {
+  const data = part?.body?.data;
+  if (data) return normalizeBase64Url(data);
+  const attachmentId = part?.body?.attachmentId;
+  if (attachmentId && fetchAttachment) {
+    try {
+      const attachmentData = await fetchAttachment(attachmentId);
+      return attachmentData ? normalizeBase64Url(attachmentData) : "";
     } catch {
       return "";
     }
@@ -97,11 +120,10 @@ async function collectInlineGmailAssets(
     }
     if (!isInlineImagePart(part)) continue;
     const contentId = normalizeContentId(getHeader(part, "content-id"));
-    const bodyData = await getPartData(part, fetchAttachment);
-    if (!contentId || !bodyData) continue;
+    const bodyBase64 = await getPartBinaryBase64(part, fetchAttachment);
+    if (!contentId || !bodyBase64) continue;
     const mimeType = String(part.mimeType || "image/png");
-    const base64 = Buffer.from(bodyData, "utf8").toString("base64");
-    assets.push({ contentId, dataUrl: `data:${mimeType};base64,${base64}` });
+    assets.push({ contentId, dataUrl: `data:${mimeType};base64,${bodyBase64}` });
   }
   return assets;
 }
