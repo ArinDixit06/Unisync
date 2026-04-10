@@ -1,4 +1,4 @@
-﻿{
+{
   "services": {
     "frontend": {
       "buildCommand": "cd frontend && npm ci && npm run build",
