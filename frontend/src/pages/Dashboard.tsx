@@ -339,13 +339,13 @@ export function Dashboard() {
       }
       detail={
         <div
-          className={`fixed inset-0 z-20 bg-[var(--color-bg-base)] transition duration-200 ease-out lg:static lg:inset-auto lg:z-auto lg:h-full ${
+          className={`fixed inset-0 z-20 bg-[var(--color-bg-base)] transition duration-200 ease-out lg:relative lg:h-full ${
             selectedEmailId
               ? "translate-x-0 opacity-100"
-              : "pointer-events-none translate-x-full opacity-0 lg:translate-x-8"
+              : "pointer-events-none translate-x-full opacity-0"
           }`}
         >
-          <div className="h-full border-l border-gray-200/70 bg-white">
+          <div className="h-full bg-white">
             <MailPreview
               email={activeFilter === "drafts" ? draftDetail : emailDetail}
               onArchive={() => emailDetail && handleArchive(emailDetail.id)}

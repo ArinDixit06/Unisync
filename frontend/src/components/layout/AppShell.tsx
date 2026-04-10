@@ -40,8 +40,20 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="shrink-0">{topbar}</div>
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          <main className={`relative flex overflow-hidden ${detailOpen ? "w-full lg:w-[420px] xl:w-[480px]" : "w-full flex-1"}`}>{list}</main>
-          <aside className={`relative overflow-hidden transition-all duration-200 ${detailOpen ? "w-0 flex-1 lg:w-auto" : "w-0 flex-none"}`}>{detail}</aside>
+          <main
+            className={`relative overflow-hidden transition-all duration-200 ${
+              detailOpen ? "hidden w-0 lg:hidden" : "flex w-full flex-1"
+            }`}
+          >
+            {list}
+          </main>
+          <aside
+            className={`relative overflow-hidden transition-all duration-200 ${
+              detailOpen ? "flex w-full flex-1" : "hidden w-0"
+            }`}
+          >
+            {detail}
+          </aside>
         </div>
       </div>
       {children}
