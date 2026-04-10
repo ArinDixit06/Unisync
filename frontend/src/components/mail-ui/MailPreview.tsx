@@ -151,9 +151,9 @@ export function MailPreview({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6 lg:px-6">
+      <div className="flex-1 overflow-y-auto py-4">
         {events.length ? (
-          <div className="mb-5 rounded-2xl border border-blue-200 bg-blue-50/70 p-5 shadow-soft">
+          <div className="mb-5 border-y border-blue-200 bg-blue-50/70 px-4 py-5 lg:px-6">
             <div className="mb-2 text-sm font-semibold text-blue-900">Event detected</div>
             {events.map((event: any) => (
               <div key={event.id} className="mb-4 last:mb-0">
@@ -181,7 +181,7 @@ export function MailPreview({
         ) : null}
 
         {riskTone ? (
-          <div className={`mb-4 rounded-2xl border p-4 text-sm ${riskTone.box}`}>
+          <div className={`mb-4 border-y px-4 py-4 text-sm lg:px-6 ${riskTone.box}`}>
             <p className="font-semibold">{riskTone.title}</p>
             <p className="mt-1">{riskTone.message}</p>
             {riskReasons.length ? (
@@ -195,7 +195,7 @@ export function MailPreview({
         ) : null}
 
         {bullets.length ? (
-          <div className="mb-5 rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-600 shadow-soft">
+          <div className="mb-5 border-y border-gray-200 bg-white px-4 py-4 text-sm text-gray-600 lg:px-6">
             <p className="mb-2 font-semibold text-gray-800">AI Summary</p>
             <ul className="list-disc space-y-1 pl-4">
               {bullets.map((bullet: string) => (
@@ -208,7 +208,7 @@ export function MailPreview({
         <EmailViewer email={email} />
 
         {(email.attachments || []).length ? (
-          <div className="mt-6">
+          <div className="mt-6 px-4 lg:px-6">
             <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-gray-500">
               <Paperclip size={12} /> Attachments
             </div>

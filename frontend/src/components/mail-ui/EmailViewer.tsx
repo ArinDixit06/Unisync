@@ -113,14 +113,14 @@ export function EmailViewer({ email }: { email: any }) {
 
   if (!html) {
     return (
-      <div className="w-full rounded-lg bg-white p-4 shadow-sm lg:p-6">
+      <div className="w-full px-4 py-4 lg:px-6">
         <pre className="whitespace-pre-wrap text-sm text-gray-700">{plain}</pre>
       </div>
     )
   }
 
   return (
-    <div className="email-html w-full rounded-lg bg-white p-4 shadow-sm lg:p-6">
+    <div className="email-html w-full px-4 py-4 lg:px-6">
       <div dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   )
