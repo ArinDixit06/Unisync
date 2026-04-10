@@ -123,7 +123,7 @@ export function MailList({
       </div>
       <div
         ref={listRef}
-        className="relative flex-1 overflow-y-auto px-2 pb-8 pt-3"
+        className="relative flex-1 overflow-y-auto pb-8"
         role="list"
         tabIndex={0}
         onKeyDown={handleKeyDown}

@@ -101,12 +101,12 @@ export async function fetchHistory(accessToken: string, startHistoryId: string):
   );
 }
 
-export async function sendMessage(accessToken: string, rawBase64: string): Promise<any> {
+export async function sendMessage(accessToken: string, rawBase64: string, threadId?: string | null): Promise<any> {
   return asJson(
     await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
       method: "POST",
       headers: { ...authHeaders(accessToken), "Content-Type": "application/json" },
-      body: JSON.stringify({ raw: rawBase64 })
+      body: JSON.stringify(threadId ? { raw: rawBase64, threadId } : { raw: rawBase64 })
     })
   );
 }

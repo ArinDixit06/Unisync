@@ -9,7 +9,19 @@ import { useAuthStore } from "../../stores/authStore"
 import { apiFetch } from "../../lib/api"
 import "./compose.css"
 
-export function ComposeModal({ onClose }: { onClose: () => void }) {
+interface ComposeInitialData {
+  accountId?: string | null
+  to?: string[]
+  cc?: string[]
+  bcc?: string[]
+  subject?: string
+  bodyHtml?: string
+  threadId?: string | null
+  inReplyTo?: string | null
+  references?: string | null
+}
+
+export function ComposeModal({ onClose, initialData }: { onClose: () => void; initialData?: ComposeInitialData | null }) {
   const { linkedAccounts } = useAuthStore()
   const queryClient = useQueryClient()
   const [accountId, setAccountId] = useState("")
@@ -34,8 +46,26 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
       setAccountId("")
       return
     }
+    const requestedAccountId = initialData?.accountId
+    if (requestedAccountId && linkedAccounts.some((account) => account.id === requestedAccountId)) {
+      setAccountId(requestedAccountId)
+      return
+    }
     setAccountId((current) => current && linkedAccounts.some((account) => account.id === current) ? current : linkedAccounts[0].id)
-  }, [linkedAccounts])
+  }, [initialData?.accountId, linkedAccounts])
+
+  useEffect(() => {
+    if (!initialData) return
+    setTo((initialData.to || []).join(", "))
+    setCc((initialData.cc || []).join(", "))
+    setBcc((initialData.bcc || []).join(", "))
+    setSubject(initialData.subject || "")
+  }, [initialData])
+
+  useEffect(() => {
+    if (!editor || initialData?.bodyHtml == null) return
+    editor.commands.setContent(initialData.bodyHtml)
+  }, [editor, initialData?.bodyHtml])
 
   const clearTimers = () => {
     if (sendTimeoutRef.current) window.clearTimeout(sendTimeoutRef.current)
@@ -104,6 +134,9 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
           bcc: bccList,
           subject,
           body_html: html,
+          thread_id: initialData?.threadId || null,
+          in_reply_to: initialData?.inReplyTo || null,
+          references: initialData?.references || null,
           attachments: attachmentPayload
         })
       })

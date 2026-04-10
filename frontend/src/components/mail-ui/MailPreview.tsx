@@ -1,4 +1,4 @@
-import { Paperclip, Reply, Forward, Archive, Trash2, X } from "lucide-react"
+import { ArrowLeft, Paperclip, Reply, Forward, Archive, Trash2, MailOpen, X } from "lucide-react"
 import { EmptyState } from "./EmptyState"
 import { EmailViewer } from "./EmailViewer"
 import { safeParseJsonArray } from "../../lib/json"
@@ -14,6 +14,8 @@ export function MailPreview({
   onArchive,
   onDelete,
   onToggleRead,
+  onReply,
+  onForward,
   onConfirmEvent,
   onDismissEvent,
   onClose
@@ -22,6 +24,8 @@ export function MailPreview({
   onArchive: () => void
   onDelete: () => void
   onToggleRead: () => void
+  onReply: () => void
+  onForward: () => void
   onConfirmEvent: (eventId: string) => void
   onDismissEvent: (eventId: string) => void
   onClose?: () => void
@@ -65,7 +69,43 @@ export function MailPreview({
 
   return (
     <article className="flex h-full flex-col overflow-hidden">
-      <div className="flex items-start justify-between border-b border-gray-200/70 bg-white px-6 py-4">
+      <div className="flex items-center gap-2 border-b border-gray-200/70 bg-white px-4 py-3 lg:px-6">
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-gray-200 p-2 text-gray-500 transition hover:border-blue-300 hover:text-blue-700"
+            aria-label="Back to inbox"
+          >
+            <ArrowLeft size={16} />
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={onArchive}
+          className="rounded-full border border-gray-200 p-2 text-gray-500 transition hover:border-blue-300 hover:text-blue-700"
+          aria-label="Archive"
+        >
+          <Archive size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleRead}
+          className="rounded-full border border-gray-200 p-2 text-gray-500 transition hover:border-blue-300 hover:text-blue-700"
+          aria-label={email.is_read ? "Mark unread" : "Mark read"}
+        >
+          <MailOpen size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="rounded-full border border-gray-200 p-2 text-gray-500 transition hover:border-rose-300 hover:text-rose-600"
+          aria-label="Delete"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+      <div className="flex items-start justify-between border-b border-gray-200/70 bg-white px-4 py-4 lg:px-6">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">
             {email.subject || "(No subject)"}
@@ -82,53 +122,36 @@ export function MailPreview({
             </div>
           ) : null}
         </div>
-        <div className="flex items-center gap-2">
+        {onClose ? (
           <button
             type="button"
-            onClick={onToggleRead}
-            className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-600"
+            onClick={onClose}
+            className="rounded-full border border-gray-200 p-2 text-gray-500 lg:hidden"
+            aria-label="Close preview"
           >
-            {email.is_read ? "Mark unread" : "Mark read"}
+            <X size={14} />
           </button>
-          <button
-            type="button"
-            onClick={onArchive}
-            className="rounded-full border border-gray-200 p-2 text-gray-500 hover:border-blue-300 hover:text-blue-600"
-            aria-label="Archive"
-          >
-            <Archive size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="rounded-full border border-gray-200 p-2 text-gray-500 hover:border-rose-300 hover:text-rose-600"
-            aria-label="Delete"
-          >
-            <Trash2 size={14} />
-          </button>
-          {onClose ? (
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-full border border-gray-200 p-2 text-gray-500 lg:hidden"
-              aria-label="Close preview"
-            >
-              <X size={14} />
-            </button>
-          ) : null}
-        </div>
+        ) : null}
       </div>
 
-      <div className="flex items-center gap-2 border-b border-gray-200/70 bg-white px-6 py-3 text-xs text-gray-500">
-        <button className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1">
+      <div className="flex items-center gap-2 border-b border-gray-200/70 bg-white px-4 py-3 text-xs text-gray-500 lg:px-6">
+        <button
+          type="button"
+          onClick={onReply}
+          className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1"
+        >
           <Reply size={12} /> Reply
         </button>
-        <button className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1">
+        <button
+          type="button"
+          onClick={onForward}
+          className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1"
+        >
           <Forward size={12} /> Forward
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+      <div className="flex-1 overflow-y-auto px-4 py-6 lg:px-6">
         {events.length ? (
           <div className="mb-5 rounded-2xl border border-blue-200 bg-blue-50/70 p-5 shadow-soft">
             <div className="mb-2 text-sm font-semibold text-blue-900">Event detected</div>

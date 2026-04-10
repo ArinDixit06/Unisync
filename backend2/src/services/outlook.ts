@@ -93,7 +93,10 @@ export async function listMessages(accessToken: string, top = 50): Promise<any[]
 }
 
 export async function fetchMessage(accessToken: string, messageId: string): Promise<any> {
-  return asJson(await fetch(`https://graph.microsoft.com/v1.0/me/messages/${messageId}`, { headers: authHeaders(accessToken) }));
+  const params = new URLSearchParams({
+    $expand: "attachments($select=id,name,contentType,isInline,contentId,contentBytes)"
+  });
+  return asJson(await fetch(`https://graph.microsoft.com/v1.0/me/messages/${messageId}?${params}`, { headers: authHeaders(accessToken) }));
 }
 
 export async function sendMessage(accessToken: string, message: Record<string, unknown>): Promise<any> {

@@ -1,0 +1,147 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.contacts (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  email_address text NOT NULL,
+  display_name text,
+  interaction_count integer DEFAULT 1,
+  last_interaction_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT contacts_pkey PRIMARY KEY (id),
+  CONSTRAINT contacts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.drafts (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  account_id uuid NOT NULL,
+  to_list ARRAY NOT NULL,
+  cc_list ARRAY,
+  bcc_list ARRAY,
+  subject text,
+  body_html text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  to_list_enc text,
+  cc_list_enc text,
+  bcc_list_enc text,
+  subject_enc text,
+  body_html_enc text,
+  CONSTRAINT drafts_pkey PRIMARY KEY (id),
+  CONSTRAINT drafts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT drafts_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.linked_accounts(id)
+);
+CREATE TABLE public.email_labels (
+  email_id uuid NOT NULL,
+  label_id uuid NOT NULL,
+  CONSTRAINT email_labels_pkey PRIMARY KEY (email_id, label_id),
+  CONSTRAINT email_labels_email_id_fkey FOREIGN KEY (email_id) REFERENCES public.emails(id),
+  CONSTRAINT email_labels_label_id_fkey FOREIGN KEY (label_id) REFERENCES public.labels(id)
+);
+CREATE TABLE public.emails (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  account_id uuid NOT NULL,
+  provider text NOT NULL,
+  message_id text NOT NULL,
+  thread_id text,
+  subject text,
+  sender_name text,
+  sender_email text NOT NULL,
+  preview_snippet text,
+  body_html text,
+  received_at timestamp with time zone NOT NULL,
+  is_read boolean DEFAULT false,
+  is_starred boolean DEFAULT false,
+  is_archived boolean DEFAULT false,
+  is_deleted boolean DEFAULT false,
+  is_snoozed boolean DEFAULT false,
+  snoozed_until timestamp with time zone,
+  has_attachments boolean DEFAULT false,
+  attachment_count integer DEFAULT 0,
+  processing_status USER-DEFINED DEFAULT 'pending'::processing_status,
+  processing_started_at timestamp with time zone,
+  processing_completed_at timestamp with time zone,
+  processing_error text,
+  summary_bullets jsonb,
+  risk_level USER-DEFINED,
+  risk_reasons ARRAY,
+  priority_level USER-DEFINED,
+  priority_reason text,
+  category USER-DEFINED DEFAULT 'primary'::email_category,
+  raw_headers jsonb,
+  body_expires_at timestamp with time zone DEFAULT (now() + '7 days'::interval),
+  search_vector tsvector,
+  created_at timestamp with time zone DEFAULT now(),
+  body_html_enc text,
+  raw_headers_enc text,
+  CONSTRAINT emails_pkey PRIMARY KEY (id),
+  CONSTRAINT emails_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT emails_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.linked_accounts(id)
+);
+CREATE TABLE public.labels (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  name text NOT NULL,
+  color text NOT NULL DEFAULT '#64748b'::text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT labels_pkey PRIMARY KEY (id),
+  CONSTRAINT labels_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.linked_accounts (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  provider text NOT NULL,
+  email_address text NOT NULL,
+  display_name text,
+  access_token_enc text NOT NULL,
+  refresh_token_enc text,
+  subscription_id text,
+  subscription_expires_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT linked_accounts_pkey PRIMARY KEY (id),
+  CONSTRAINT linked_accounts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.oauth_states (
+  id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  provider text NOT NULL,
+  expires_at timestamp with time zone NOT NULL,
+  CONSTRAINT oauth_states_pkey PRIMARY KEY (id),
+  CONSTRAINT oauth_states_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.security_logs (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  email_id uuid,
+  event_type text NOT NULL,
+  detail jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT security_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT security_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT security_logs_email_id_fkey FOREIGN KEY (email_id) REFERENCES public.emails(id)
+);
+CREATE TABLE public.suggested_events (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  email_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  title text NOT NULL,
+  start_datetime timestamp with time zone,
+  end_datetime timestamp with time zone,
+  location text,
+  description text,
+  gcal_event_id text,
+  confirmed_at timestamp with time zone,
+  dismissed_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT suggested_events_pkey PRIMARY KEY (id),
+  CONSTRAINT suggested_events_email_id_fkey FOREIGN KEY (email_id) REFERENCES public.emails(id),
+  CONSTRAINT suggested_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.users (
+  id uuid NOT NULL,
+  email text NOT NULL,
+  display_name text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT users_pkey PRIMARY KEY (id)
+);

@@ -52,6 +52,60 @@ async function getPartData(part: any, fetchAttachment: ((attachmentId: string) =
   return "";
 }
 
+function normalizeContentId(value: string | null | undefined): string | null {
+  if (!value) return null;
+  return value.replace(/[<>]/g, "").trim().toLowerCase() || null;
+}
+
+function getHeader(part: any, name: string): string | null {
+  for (const header of part?.headers ?? []) {
+    if (String(header?.name ?? "").toLowerCase() === name.toLowerCase()) {
+      return String(header.value ?? "");
+    }
+  }
+  return null;
+}
+
+function isInlineImagePart(part: any): boolean {
+  const disposition = String(getHeader(part, "content-disposition") ?? "").toLowerCase();
+  const contentId = normalizeContentId(getHeader(part, "content-id"));
+  return String(part?.mimeType ?? "").toLowerCase().startsWith("image/") && (Boolean(contentId) || disposition.includes("inline"));
+}
+
+function replaceCidSources(html: string, inlineAssets: Array<{ contentId: string; dataUrl: string }>): string {
+  if (!html || !inlineAssets.length) return html;
+  let output = html;
+  for (const asset of inlineAssets) {
+    const escaped = asset.contentId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    output = output.replace(new RegExp(`cid:${escaped}`, "gi"), asset.dataUrl);
+  }
+  return output;
+}
+
+async function collectInlineGmailAssets(
+  payload: any,
+  fetchAttachment: ((attachmentId: string) => Promise<string>) | null
+): Promise<Array<{ contentId: string; dataUrl: string }>> {
+  if (!payload) return [];
+  const assets: Array<{ contentId: string; dataUrl: string }> = [];
+  const stack = [payload];
+  while (stack.length) {
+    const part = stack.pop();
+    if (!part) continue;
+    if (Array.isArray(part.parts)) {
+      stack.push(...part.parts);
+    }
+    if (!isInlineImagePart(part)) continue;
+    const contentId = normalizeContentId(getHeader(part, "content-id"));
+    const bodyData = await getPartData(part, fetchAttachment);
+    if (!contentId || !bodyData) continue;
+    const mimeType = String(part.mimeType || "image/png");
+    const base64 = Buffer.from(bodyData, "utf8").toString("base64");
+    assets.push({ contentId, dataUrl: `data:${mimeType};base64,${base64}` });
+  }
+  return assets;
+}
+
 async function extractGmailBody(payload: any, fetchAttachment: ((attachmentId: string) => Promise<string>) | null): Promise<string> {
   if (!payload) return "";
   const parts = payload.parts ?? [];
@@ -84,6 +138,7 @@ export async function parseGmailMessage(
   const payload = message.payload ?? {};
   const headerMap = Object.fromEntries((payload.headers ?? []).filter((h: any) => h?.name).map((h: any) => [String(h.name).toLowerCase(), h.value]));
   const body = await extractGmailBody(payload, fetchAttachment);
+  const inlineAssets = await collectInlineGmailAssets(payload, fetchAttachment);
   const sender = String(headerMap.from ?? "");
   return {
     message_id: message.id,
@@ -93,13 +148,21 @@ export async function parseGmailMessage(
     sender_email: sender.includes("<") ? sender.split("<").at(-1)?.replace(">", "").trim() : sender,
     received_at: message.internalDate ? new Date(Number(message.internalDate)).toISOString() : null,
     snippet: message.snippet,
-    body,
+    body: replaceCidSources(body, inlineAssets),
     headers: headerMap
   };
 }
 
 export function parseOutlookMessage(message: any): Record<string, unknown> {
   const sender = message?.from?.emailAddress ?? {};
+  const attachments: any[] = Array.isArray(message?.attachments) ? message.attachments : [];
+  const inlineAssets = attachments
+    .filter((attachment: any) => attachment?.isInline && attachment?.contentId && attachment?.contentBytes)
+    .map((attachment: any) => ({
+      contentId: normalizeContentId(String(attachment.contentId))!,
+      dataUrl: `data:${String(attachment.contentType || "image/png")};base64,${String(attachment.contentBytes)}`
+    }))
+    .filter((asset: { contentId: string | null }) => asset.contentId);
   return {
     message_id: message.id,
     thread_id: message.conversationId,
@@ -108,7 +171,7 @@ export function parseOutlookMessage(message: any): Record<string, unknown> {
     sender_email: sender.address ?? "",
     received_at: message.receivedDateTime ?? null,
     snippet: message.bodyPreview ?? null,
-    body: message?.body?.content ?? "",
+    body: replaceCidSources(message?.body?.content ?? "", inlineAssets),
     headers: {}
   };
 }

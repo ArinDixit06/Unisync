@@ -36,6 +36,9 @@ function hydrateDraft(row: Record<string, any>) {
 }
 
 async function buildRawEmail(payload: any, fromEmail: string, to: string[], cc: string[], bcc: string[]): Promise<string> {
+  const customHeaders: Record<string, string> = {};
+  if (payload.in_reply_to) customHeaders["In-Reply-To"] = String(payload.in_reply_to);
+  if (payload.references) customHeaders["References"] = String(payload.references);
   const composer = new MailComposer({
     from: fromEmail || undefined,
     to: to.join(", "),
@@ -43,6 +46,7 @@ async function buildRawEmail(payload: any, fromEmail: string, to: string[], cc: 
     bcc: bcc.length ? bcc.join(", ") : undefined,
     subject: payload.subject,
     html: payload.body_html,
+    headers: customHeaders,
     attachments: (payload.attachments ?? []).map((att: any) => ({
       filename: att.filename,
       content: Buffer.from(String(att.content_base64 ?? ""), "base64"),
@@ -72,7 +76,7 @@ async function handleSend(request: AuthenticatedRequest, response: any, next: an
     if (account.provider === "gmail") {
       const raw = await buildRawEmail(request.body, account.email_address || "", to, cc, bcc);
       try {
-        const sent = await sendGmailMessage(accessToken, raw);
+        const sent = await sendGmailMessage(accessToken, raw, request.body.thread_id ? String(request.body.thread_id) : null);
         messageId = sent.id ?? null;
         threadId = sent.threadId ?? null;
       } catch (error: any) {
@@ -84,7 +88,7 @@ async function handleSend(request: AuthenticatedRequest, response: any, next: an
           filters: [["id", "eq", request.body.account_id], ["user_id", "eq", request.currentUser!.userId]],
           userToken: request.currentUser!.token
         });
-        const sent = await sendGmailMessage(accessToken, raw);
+        const sent = await sendGmailMessage(accessToken, raw, request.body.thread_id ? String(request.body.thread_id) : null);
         messageId = sent.id ?? null;
         threadId = sent.threadId ?? null;
       }
@@ -95,6 +99,10 @@ async function handleSend(request: AuthenticatedRequest, response: any, next: an
         toRecipients: to.map((address) => ({ emailAddress: { address } })),
         ccRecipients: cc.map((address) => ({ emailAddress: { address } })),
         bccRecipients: bcc.map((address) => ({ emailAddress: { address } })),
+        internetMessageHeaders: [
+          request.body.in_reply_to ? { name: "In-Reply-To", value: String(request.body.in_reply_to) } : null,
+          request.body.references ? { name: "References", value: String(request.body.references) } : null
+        ].filter(Boolean),
         attachments: (request.body.attachments ?? []).map((att: any) => ({
           "@odata.type": "#microsoft.graph.fileAttachment",
           name: att.filename,

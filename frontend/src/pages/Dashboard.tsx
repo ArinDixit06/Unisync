@@ -11,6 +11,7 @@ import { supabase, supabaseConfigured } from "../lib/supabase"
 
 export function Dashboard() {
   const [composeOpen, setComposeOpen] = useState(false)
+  const [composeInitialData, setComposeInitialData] = useState<any | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const queryClient = useQueryClient()
@@ -274,6 +275,45 @@ export function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ["drafts"] })
   }
 
+  const buildReplyBody = (email: any) => {
+    const body = email?.body_html || ""
+    const receivedAt = email?.received_at ? new Date(email.received_at).toLocaleString() : ""
+    return `<p><br /></p><hr /><p><strong>From:</strong> ${email?.sender_name || email?.sender_email || ""} &lt;${email?.sender_email || ""}&gt;<br/><strong>Sent:</strong> ${receivedAt}<br/><strong>Subject:</strong> ${email?.subject || ""}</p>${body}`
+  }
+
+  const replyHeadersFromEmail = (email: any) => {
+    const headers = email?.raw_headers || {}
+    const messageId = headers["message-id"] || null
+    const existingReferences = headers.references || null
+    return {
+      inReplyTo: messageId,
+      references: [existingReferences, messageId].filter(Boolean).join(" ").trim() || null
+    }
+  }
+
+  const handleReply = (email: any) => {
+    const headers = replyHeadersFromEmail(email)
+    setComposeInitialData({
+      accountId: email?.account_id || null,
+      to: email?.sender_email ? [email.sender_email] : [],
+      subject: email?.subject?.startsWith("Re:") ? email.subject : `Re: ${email?.subject || ""}`,
+      bodyHtml: buildReplyBody(email),
+      threadId: email?.thread_id || null,
+      inReplyTo: headers.inReplyTo,
+      references: headers.references
+    })
+    setComposeOpen(true)
+  }
+
+  const handleForward = (email: any) => {
+    setComposeInitialData({
+      accountId: email?.account_id || null,
+      subject: email?.subject?.startsWith("Fwd:") ? email.subject : `Fwd: ${email?.subject || ""}`,
+      bodyHtml: buildReplyBody(email)
+    })
+    setComposeOpen(true)
+  }
+
   return (
     <AppShell
       sidebarProps={{
@@ -355,6 +395,8 @@ export function Dashboard() {
                   : emailDetail && handleDelete(emailDetail.id)
               }
               onToggleRead={() => emailDetail && handleToggleRead(emailDetail)}
+              onReply={() => emailDetail && handleReply(emailDetail)}
+              onForward={() => emailDetail && handleForward(emailDetail)}
               onConfirmEvent={handleConfirmEvent}
               onDismissEvent={handleDismissEvent}
               onClose={() => setState({ selectedEmailId: null })}
@@ -364,7 +406,15 @@ export function Dashboard() {
       }
     >
       <SearchCommand open={searchOpen} onClose={() => setSearchOpen(false)} />
-      {composeOpen && <ComposeModal onClose={() => setComposeOpen(false)} />}
+      {composeOpen && (
+        <ComposeModal
+          onClose={() => {
+            setComposeOpen(false)
+            setComposeInitialData(null)
+          }}
+          initialData={composeInitialData}
+        />
+      )}
       <div className="lg:hidden">
         <ComposeButton onClick={() => setComposeOpen(true)} floating />
       </div>
