@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ChangeEvent } from "react"
 import { useEditor, EditorContent } from "@tiptap/react"
 import { useQueryClient } from "@tanstack/react-query"
 import StarterKit from "@tiptap/starter-kit"
@@ -20,6 +20,9 @@ interface ComposeInitialData {
   inReplyTo?: string | null
   references?: string | null
 }
+
+const MAX_ATTACHMENT_BYTES = 150 * 1024 * 1024
+const MAX_ATTACHMENT_LABEL = "150 MB"
 
 export function ComposeModal({ onClose, initialData }: { onClose: () => void; initialData?: ComposeInitialData | null }) {
   const { linkedAccounts } = useAuthStore()
@@ -78,6 +81,8 @@ export function ComposeModal({ onClose, initialData }: { onClose: () => void; in
     return () => clearTimers()
   }, [])
 
+  const attachmentBytes = attachments.reduce((total, file) => total + file.size, 0)
+
   const buildAttachmentPayload = async () => {
     return Promise.all(
       attachments.map(async (file) => {
@@ -109,6 +114,12 @@ export function ComposeModal({ onClose, initialData }: { onClose: () => void; in
   const sendNow = async () => {
     if (!accountId) {
       alert("Choose which connected mailbox you want to send from.")
+      setIsSending(false)
+      setCountdown(5)
+      return
+    }
+    if (attachmentBytes > MAX_ATTACHMENT_BYTES) {
+      alert(`Attachments must be ${MAX_ATTACHMENT_LABEL} or less in total.`)
       setIsSending(false)
       setCountdown(5)
       return
@@ -170,6 +181,17 @@ export function ComposeModal({ onClose, initialData }: { onClose: () => void; in
     setCountdown(5)
   }
 
+  const handleAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextAttachments = Array.from(event.target.files || [])
+    const nextSize = nextAttachments.reduce((total, file) => total + file.size, 0)
+    if (nextSize > MAX_ATTACHMENT_BYTES) {
+      alert(`Attachments must be ${MAX_ATTACHMENT_LABEL} or less in total.`)
+      event.target.value = ""
+      return
+    }
+    setAttachments(nextAttachments)
+  }
+
   return (
     <div className="compose-modal">
       <div className="compose-header">
@@ -209,8 +231,11 @@ export function ComposeModal({ onClose, initialData }: { onClose: () => void; in
         <input
           type="file"
           multiple
-          onChange={(e) => setAttachments(Array.from(e.target.files || []))}
+          onChange={handleAttachmentChange}
         />
+        <div style={{ fontSize: "var(--type-xs)", color: "var(--color-text-tertiary)", marginTop: 8 }}>
+          Attachment limit: {MAX_ATTACHMENT_LABEL} total
+        </div>
         <div className="attachment-list">
           {attachments.map((file) => (
             <div key={file.name} className="attachment-chip">

@@ -24,6 +24,8 @@ import webhooksRouter from "./routes/webhooks.js";
 const app = express();
 const logger = getLogger();
 const abortController = new AbortController();
+const maxAttachmentBytes = 150 * 1024 * 1024;
+const maxJsonBodyLimit = "210mb";
 const corsOptions = {
   origin: frontendOrigins(),
   credentials: true,
@@ -38,7 +40,7 @@ app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 app.use((request, _response, next) => {
   if (request.path.startsWith("/webhooks")) return express.raw({ type: "*/*" })(request, _response, next);
-  return express.json({ limit: "2mb" })(request, _response, next);
+  return express.json({ limit: maxJsonBodyLimit })(request, _response, next);
 });
 
 app.use(async (request, response, next) => {
@@ -71,6 +73,15 @@ app.use("/webhooks", webhooksRouter);
 app.use("/sync", syncRouter);
 
 app.use((error: any, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
+  if (error?.type === "entity.too.large") {
+    response.status(413).json({
+      error: {
+        code: "payload_too_large",
+        message: `Attachments can be up to ${Math.round(maxAttachmentBytes / (1024 * 1024))} MB total.`
+      }
+    });
+    return;
+  }
   if (error instanceof ApiError) {
     response.status(error.statusCode).json({ error: { code: error.code, message: error.message, details: error.details } });
     return;
