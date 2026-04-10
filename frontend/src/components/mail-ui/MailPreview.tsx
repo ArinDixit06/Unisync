@@ -2,6 +2,7 @@ import { Paperclip, Reply, Forward, Archive, Trash2, X } from "lucide-react"
 import { EmptyState } from "./EmptyState"
 import { EmailViewer } from "./EmailViewer"
 import { safeParseJsonArray } from "../../lib/json"
+import { accountColorFor } from "../../lib/accountColors"
 
 function normalizeRiskReasons(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((item) => String(item)).filter(Boolean)
@@ -40,6 +41,7 @@ export function MailPreview({
   const bullets = safeParseJsonArray(email.summary_bullets)
   const riskReasons = normalizeRiskReasons(email.risk_reasons)
   const events = email.suggested_events || []
+  const accountColors = accountColorFor(email.account_email)
   const riskTone =
     email.risk_level === "high"
       ? {
@@ -72,7 +74,12 @@ export function MailPreview({
             {email.sender_name} &lt;{email.sender_email}&gt;
           </p>
           {email.account_email ? (
-            <p className="mt-1 text-xs font-medium text-gray-400">Received in {email.account_email}</p>
+            <div className="mt-2">
+              <span className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold ${accountColors.pill}`}>
+                <span className={`h-2 w-2 rounded-full ${accountColors.dot}`} />
+                Received in {email.account_email}
+              </span>
+            </div>
           ) : null}
         </div>
         <div className="flex items-center gap-2">

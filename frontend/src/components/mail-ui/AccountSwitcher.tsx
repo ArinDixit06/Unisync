@@ -4,6 +4,7 @@ export interface AccountOption {
   id: string
   name: string
   email: string
+  provider?: string
 }
 
 export function AccountSwitcher({

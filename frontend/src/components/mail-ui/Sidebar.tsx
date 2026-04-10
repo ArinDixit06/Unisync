@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react"
-import { Folder, Mail, Star, Clock3, AlertTriangle, ChevronRight } from "lucide-react"
+import { Folder, Mail, Star, Clock3, AlertTriangle, ChevronRight, PlugZapOff } from "lucide-react"
 import { ComposeButton } from "./ComposeButton"
 import { SyncToggle } from "./SyncToggle"
 import { AccountSwitcher, AccountOption } from "./AccountSwitcher"
 import { LabelList, LabelItem } from "./LabelList"
 import { EmailCategory } from "../../stores/uiStore"
+import { accountColorFor } from "../../lib/accountColors"
 
 const categories: Array<{ id: EmailCategory; label: string }> = [
   { id: "all", label: "All mail" },
@@ -32,6 +33,7 @@ export interface SidebarProps {
   onCompose: () => void
   onSync: () => void
   onAccountSelect: (accountId: string) => void
+  onDisconnectAccount?: (accountId: string) => void
   onLogout?: () => void
 }
 
@@ -52,6 +54,7 @@ export function Sidebar({
   onCompose,
   onSync,
   onAccountSelect,
+  onDisconnectAccount,
   onLogout
 }: SidebarProps) {
   const [sections, setSections] = useState({ folders: true, categories: true, labels: true })
@@ -116,10 +119,25 @@ export function Sidebar({
             {linkedAccountItems.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600"
+                className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600"
               >
-                <span className="truncate">{item.email}</span>
-                <span className="text-[11px] text-gray-400">Gmail</span>
+                <div className="min-w-0 flex items-center gap-2">
+                  <span className={`h-2.5 w-2.5 rounded-full ${accountColorFor(item.email).dot}`} />
+                  <span className="truncate">{item.email}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] capitalize text-gray-400">{item.provider || "mail"}</span>
+                  {onDisconnectAccount ? (
+                    <button
+                      type="button"
+                      onClick={() => onDisconnectAccount(item.id)}
+                      className="rounded-full border border-gray-200 p-1 text-gray-400 transition hover:border-rose-300 hover:text-rose-600"
+                      aria-label={`Disconnect ${item.email}`}
+                    >
+                      <PlugZapOff size={12} />
+                    </button>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>

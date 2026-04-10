@@ -254,13 +254,25 @@ export function Dashboard() {
         ...linkedAccounts.map((account: any) => ({
           id: account.id,
           name: account.display_name || account.email_address || account.provider?.toUpperCase?.() || "Account",
-          email: account.email_address || "Connected"
+          email: account.email_address || "Connected",
+          provider: account.provider
         }))
       ]
     : [{ id: "local", name: "Primary", email: "student@unisync.app" }]
 
   const activeAccount =
     accountOptions.find((account) => account.id === (activeAccountId || "all")) || accountOptions[0]
+  const detailOpen = Boolean(selectedEmailId)
+
+  const handleDisconnectAccount = async (accountId: string) => {
+    await apiFetch(`/auth/accounts/${accountId}`, { method: "DELETE" })
+    if (activeAccountId === accountId) {
+      setState({ activeAccountId: null, selectedEmailId: null })
+    }
+    queryClient.invalidateQueries({ queryKey: ["accounts"] })
+    queryClient.invalidateQueries({ queryKey: ["emails"] })
+    queryClient.invalidateQueries({ queryKey: ["drafts"] })
+  }
 
   return (
     <AppShell
@@ -284,8 +296,12 @@ export function Dashboard() {
           setState({ activeAccountId: accountId === "all" ? null : accountId, selectedEmailId: null })
           setSidebarCollapsed(false)
         },
+        onDisconnectAccount: (accountId) => {
+          void handleDisconnectAccount(accountId)
+        },
         onLogout: handleLogout
       }}
+      detailOpen={detailOpen}
       sidebarOpen={sidebarOpen}
       onSidebarToggle={() => setState({ sidebarOpen: !sidebarOpen })}
       topbar={
