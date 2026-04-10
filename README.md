@@ -20,7 +20,7 @@ UniSync is a full-stack web application that unifies Gmail and Outlook for stude
 **Resume-ready bullets**
 
 - Built a full-stack unified inbox platform for students that aggregates Gmail and Outlook into a single real-time dashboard.
-- Implemented async FastAPI services, Redis/arq background workers, and WebSocket updates to process and deliver email changes without polling.
+- Implemented a TypeScript + Express API, Redis-backed cache/realtime fan-out, and WebSocket updates to process and deliver email changes without polling.
 - Integrated Google and Microsoft OAuth flows, webhook-based email ingestion, AI-generated summaries, priority scoring, phishing analysis, and calendar event extraction.
 - Designed a React + TypeScript frontend with searchable inbox views, multi-account filtering, drafts, labels, and responsive mail-detail workflows.
 
@@ -85,18 +85,17 @@ Core product goals:
 
 ```mermaid
 flowchart LR
-  FE[React Frontend] --> API[FastAPI API]
+  FE[React Frontend] --> API[Express API]
   FE --> SB[Supabase Auth]
   API --> PG[(Postgres / Supabase)]
   API --> REDIS[(Redis)]
   GMAIL[Gmail API + Pub/Sub] --> WEBHOOKS[Webhook Endpoints]
   OUTLOOK[Microsoft Graph Webhooks] --> WEBHOOKS
   WEBHOOKS --> API
-  API --> QUEUE[arq Job Queue]
-  QUEUE --> WORKER[Background Worker]
-  WORKER --> GEMINI[Google Gemini API]
-  WORKER --> PG
-  WORKER --> BUS[Realtime Event Bus]
+  API --> PIPELINE[Email Processing Pipeline]
+  PIPELINE --> GEMINI[Google Gemini API]
+  PIPELINE --> PG
+  PIPELINE --> BUS[Realtime Event Bus]
   BUS --> WS[WebSocket Gateway]
   WS --> FE
 ```
@@ -114,11 +113,11 @@ flowchart LR
 - Gmail can be watched via Google Pub/Sub-backed inbox notifications.
 - Outlook uses Microsoft Graph subscriptions and webhook notifications.
 - Manual account sync is also supported through `/sync/account/{account_id}`.
-- Raw provider messages are fetched, parsed, normalized, stored in Postgres, and queued for enrichment.
+- Raw provider messages are fetched, parsed, normalized, stored in Postgres, and handed to the enrichment pipeline.
 
-### 3. Background AI processing
+### 3. AI processing pipeline
 
-The worker processes each stored email asynchronously:
+The backend processes each stored email through the enrichment pipeline:
 
 - sets processing status
 - performs deterministic risk checks
@@ -149,14 +148,14 @@ The worker processes each stored email asynchronously:
 
 ### Backend
 
-- Python 3.11/3.12
-- FastAPI
-- Pydantic Settings
-- asyncpg
-- httpx
+- Node.js 20
+- TypeScript
+- Express
+- ws
+- pg
+- Supabase REST
 - Redis
-- arq
-- structlog
+- ioredis
 
 ### AI and integrations
 
@@ -192,7 +191,7 @@ Notable schema choices:
 
 ## API Surface
 
-Main API groups exposed by the backend:
+Main API groups exposed by the active backend in [backend2/src](/C:/Users/ARIN/OneDrive/Desktop/uniync/backend2/src):
 
 - `/auth` for OAuth linking and linked account management
 - `/emails` for inbox listing, detail retrieval, state updates, snooze, delete, and thread views
@@ -204,8 +203,6 @@ Main API groups exposed by the backend:
 - `/webhooks` for Gmail and Outlook event ingestion
 - `/ws` for realtime updates
 - `/health` and `/ready` for service checks
-
-When the API is running, interactive docs are available at `/docs`.
 
 ## Frontend UX Highlights
 
@@ -224,14 +221,14 @@ The frontend in [frontend/src](/C:/Users/ARIN/OneDrive/Desktop/uniync/frontend/s
 
 ```text
 uniync/
-|-- backend/
-|   |-- app/
-|   |   |-- routers/        # API route groups
+|-- backend/                # Legacy Python implementation, migrations, and utility scripts kept for reference
+|   |-- migrations/         # SQL schema and policies still used by the project
+|-- backend2/
+|   |-- src/
+|   |   |-- routes/         # API route groups
 |   |   |-- services/       # Gmail, Outlook, Gemini, calendar, security helpers
-|   |   |-- workers/        # Background worker and tasks
-|   |   |-- main.py         # FastAPI app entrypoint
-|   |-- migrations/         # SQL schema and policies
-|   |-- scripts/            # Seed and maintenance scripts
+|   |   |-- workers/        # Email enrichment logic
+|   |   |-- server.ts       # Express + WebSocket entrypoint
 |-- frontend/
 |   |-- src/
 |   |   |-- components/     # Mail UI, layout, primitives, compose, search
@@ -249,7 +246,7 @@ uniync/
 ### Prerequisites
 
 - Node.js 20+
-- Python 3.11+ or Docker
+- Docker (optional, for local infra)
 - PostgreSQL 15
 - Redis 7
 - Supabase project
@@ -268,7 +265,7 @@ Copy [.env.example](/C:/Users/ARIN/OneDrive/Desktop/uniync/.env.example) to `.en
 - Gemini API key
 - Redis URL
 - encryption and JWT secrets
-- frontend/backend base URLs
+- frontend/API base URLs
 - `VITE_*` frontend runtime variables
 
 ### Option A: run with Docker Compose
@@ -289,16 +286,9 @@ Services exposed by the repo:
 Backend:
 
 ```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Worker:
-
-```bash
-cd backend
-arq app.workers.worker.WorkerSettings
+cd backend2
+npm install
+npm run dev
 ```
 
 Frontend:
@@ -324,9 +314,9 @@ At minimum, run:
 This repository is prepared for cloud-style deployment:
 
 - `docker-compose.yml` supports local orchestration
-- `backend/Dockerfile` packages the API and worker runtime
+- `backend2/Dockerfile` packages the active Node.js API runtime
 - `railway.json` suggests Railway-based deployment support
-- the config is structured around distinct frontend, API, worker, Postgres, and Redis services
+- the config is structured around frontend, API, Postgres, and Redis services
 
 ## Security Considerations
 
@@ -346,7 +336,7 @@ This project demonstrates:
 
 - full-stack product development
 - multi-provider API integration
-- async backend design
+- TypeScript backend design
 - background job orchestration
 - AI feature integration inside a user-facing workflow
 - realtime UI synchronization
@@ -367,12 +357,12 @@ Based on the repository as it stands:
 If someone wants to understand the project quickly, start with:
 
 - [frontend/src/pages/Dashboard.tsx](/C:/Users/ARIN/OneDrive/Desktop/uniync/frontend/src/pages/Dashboard.tsx)
-- [backend/app/main.py](/C:/Users/ARIN/OneDrive/Desktop/uniync/backend/app/main.py)
-- [backend/app/routers/auth.py](/C:/Users/ARIN/OneDrive/Desktop/uniync/backend/app/routers/auth.py)
-- [backend/app/routers/emails.py](/C:/Users/ARIN/OneDrive/Desktop/uniync/backend/app/routers/emails.py)
-- [backend/app/routers/compose.py](/C:/Users/ARIN/OneDrive/Desktop/uniync/backend/app/routers/compose.py)
-- [backend/app/routers/webhooks.py](/C:/Users/ARIN/OneDrive/Desktop/uniync/backend/app/routers/webhooks.py)
-- [backend/app/workers/tasks.py](/C:/Users/ARIN/OneDrive/Desktop/uniync/backend/app/workers/tasks.py)
+- [backend2/src/server.ts](/C:/Users/ARIN/OneDrive/Desktop/uniync/backend2/src/server.ts)
+- [backend2/src/routes/auth.ts](/C:/Users/ARIN/OneDrive/Desktop/uniync/backend2/src/routes/auth.ts)
+- [backend2/src/routes/emails.ts](/C:/Users/ARIN/OneDrive/Desktop/uniync/backend2/src/routes/emails.ts)
+- [backend2/src/routes/compose.ts](/C:/Users/ARIN/OneDrive/Desktop/uniync/backend2/src/routes/compose.ts)
+- [backend2/src/routes/webhooks.ts](/C:/Users/ARIN/OneDrive/Desktop/uniync/backend2/src/routes/webhooks.ts)
+- [backend2/src/workers/tasks.ts](/C:/Users/ARIN/OneDrive/Desktop/uniync/backend2/src/workers/tasks.ts)
 - [backend/migrations/001_init.sql](/C:/Users/ARIN/OneDrive/Desktop/uniync/backend/migrations/001_init.sql)
 
 ## Suggested Portfolio Framing
