@@ -56,7 +56,7 @@ export function MailItem({
       role="button"
       tabIndex={0}
       onClick={onClick}
-      className={`group flex w-full items-center gap-3 border-b border-gray-200/80 px-4 py-3 transition duration-150 hover:bg-gray-50 ${
+      className={`group grid w-full min-w-0 grid-cols-[auto_auto_minmax(140px,220px)_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-gray-200/80 px-4 py-3 transition duration-150 hover:bg-gray-50 ${
         selected ? "bg-blue-50/80" : "bg-white"
       }`}
     >
@@ -73,32 +73,30 @@ export function MailItem({
       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-700">
         {initials}
       </div>
-      <div className="min-w-0 flex flex-1 items-center gap-3">
-        <div className="min-w-0 w-36 shrink-0 xl:w-44">
-          <span className="block truncate text-sm font-semibold text-gray-900">{sender}</span>
-        </div>
-        <div className="min-w-0 flex flex-1 items-center gap-2">
-          <span className="shrink-0 truncate text-sm font-medium text-gray-800">{subject}</span>
-          {preview ? <span className="min-w-0 truncate text-sm text-gray-500">- {preview}</span> : null}
-        </div>
+      <div className="min-w-0">
+        <span className="block truncate text-sm font-semibold text-gray-900">{sender}</span>
+      </div>
+      <div className="min-w-0 flex items-center gap-2">
+        <span className="truncate text-sm font-medium text-gray-800">{subject}</span>
+        {preview ? <span className="min-w-0 truncate text-sm text-gray-500">- {preview}</span> : null}
+      </div>
+      <div className="flex shrink-0 items-center gap-2 justify-self-end">
         {sourceLabel ? (
-          <span className={`hidden shrink-0 items-center gap-2 rounded-full border px-2 py-0.5 text-[11px] font-semibold lg:inline-flex ${accountColors.pill}`}>
-            <span className={`h-2 w-2 rounded-full ${accountColors.dot}`} />
-            {sourceLabel}
+          <span className={`hidden max-w-[180px] shrink-0 items-center gap-2 truncate rounded-full border px-2 py-0.5 text-[11px] font-semibold xl:inline-flex ${accountColors.pill}`}>
+            <span className={`h-2 w-2 shrink-0 rounded-full ${accountColors.dot}`} />
+            <span className="truncate">{sourceLabel}</span>
           </span>
         ) : null}
-        <div className="flex shrink-0 items-center gap-2">
-          {priority ? (
-            <span
-              className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${priorityStyles}`}
-            >
-              {priority}
-            </span>
-          ) : null}
-          <span className="text-xs text-gray-400">{time}</span>
-        </div>
+        {priority ? (
+          <span
+            className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${priorityStyles}`}
+          >
+            {priority}
+          </span>
+        ) : null}
+        <span className="shrink-0 text-xs text-gray-400">{time}</span>
       </div>
-      <div className="mt-1 flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+      <div className="mt-1 flex items-center gap-1 justify-self-end opacity-0 transition group-hover:opacity-100">
         <button
           type="button"
           onClick={(event) => {

@@ -357,7 +357,7 @@ export function Dashboard() {
         />
       }
       list={
-        <div className="h-full border-r border-gray-200/70 bg-white">
+        <div className="h-full w-full min-w-0 bg-white">
           <MailList
             emails={emails}
             selectedEmailId={selectedEmailId}
