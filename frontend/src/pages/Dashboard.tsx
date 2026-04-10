@@ -339,8 +339,10 @@ export function Dashboard() {
       }
       detail={
         <div
-          className={`fixed inset-0 z-20 bg-[var(--color-bg-base)] transition duration-200 ease-out lg:static lg:inset-auto lg:z-auto lg:h-full lg:translate-x-0 ${
-            selectedEmailId ? "translate-x-0" : "translate-x-full lg:translate-x-0"
+          className={`fixed inset-0 z-20 bg-[var(--color-bg-base)] transition duration-200 ease-out lg:static lg:inset-auto lg:z-auto lg:h-full ${
+            selectedEmailId
+              ? "translate-x-0 opacity-100"
+              : "pointer-events-none translate-x-full opacity-0 lg:translate-x-8"
           }`}
         >
           <div className="h-full border-l border-gray-200/70 bg-white">
