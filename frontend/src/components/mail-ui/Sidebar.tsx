@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Folder, Mail, Star, Clock3, AlertTriangle, ChevronRight, PlugZapOff } from "lucide-react"
+import { Folder, Mail, Star, Clock3, AlertTriangle, ChevronRight, Unplug } from "lucide-react"
 import { ComposeButton } from "./ComposeButton"
 import { SyncToggle } from "./SyncToggle"
 import { AccountSwitcher, AccountOption } from "./AccountSwitcher"
@@ -134,7 +134,7 @@ export function Sidebar({
                       className="rounded-full border border-gray-200 p-1 text-gray-400 transition hover:border-rose-300 hover:text-rose-600"
                       aria-label={`Disconnect ${item.email}`}
                     >
-                      <PlugZapOff size={12} />
+                      <Unplug size={12} />
                     </button>
                   ) : null}
                 </div>
