@@ -83,6 +83,7 @@ export const Default: Story = {
             onArchive={() => {}}
             onDelete={() => {}}
             onToggleRead={() => {}}
+            onToggleStar={() => {}}
           />
         </div>
       }
@@ -99,6 +100,7 @@ export const Default: Story = {
               onArchive={() => {}}
               onDelete={() => {}}
               onToggleRead={() => {}}
+              onToggleStar={() => {}}
               onConfirmEvent={() => {}}
               onDismissEvent={() => {}}
             />

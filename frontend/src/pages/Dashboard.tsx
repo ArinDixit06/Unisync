@@ -205,6 +205,16 @@ export function Dashboard() {
     queryClient.invalidateQueries({ queryKey: ["email", email.id] })
   }
 
+  const handleToggleStar = async (email: any) => {
+    if (activeFilter === "drafts") return
+    await apiFetch(`/emails/${email.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_starred: !email.is_starred })
+    })
+    queryClient.invalidateQueries({ queryKey: ["emails"] })
+    queryClient.invalidateQueries({ queryKey: ["email", email.id] })
+  }
+
   const handleConfirmEvent = async (eventId: string) => {
     await apiFetch(`/calendar/events/${eventId}/confirm`, { method: "POST" })
     queryClient.invalidateQueries({ queryKey: ["email", selectedEmailId] })
@@ -369,6 +379,7 @@ export function Dashboard() {
             onArchive={handleArchive}
             onDelete={handleDelete}
             onToggleRead={handleToggleRead}
+            onToggleStar={handleToggleStar}
             hasMore={Boolean(hasNextPage)}
             loadingMore={isFetchingNextPage}
             onLoadMore={() => {
@@ -398,6 +409,7 @@ export function Dashboard() {
                   : emailDetail && handleDelete(emailDetail.id)
               }
               onToggleRead={() => emailDetail && handleToggleRead(emailDetail)}
+              onToggleStar={() => emailDetail && handleToggleStar(emailDetail)}
               onReply={() => emailDetail && handleReply(emailDetail)}
               onForward={() => emailDetail && handleForward(emailDetail)}
               onConfirmEvent={handleConfirmEvent}

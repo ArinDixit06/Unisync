@@ -14,6 +14,7 @@ export function MailList({
   onArchive,
   onDelete,
   onToggleRead,
+  onToggleStar,
   hasMore = false,
   loadingMore = false,
   onLoadMore
@@ -28,6 +29,7 @@ export function MailList({
   onArchive: (emailId: string) => void
   onDelete: (emailId: string) => void
   onToggleRead: (email: MailListItemData) => void
+  onToggleStar: (email: MailListItemData) => void
   hasMore?: boolean
   loadingMore?: boolean
   onLoadMore?: () => void
@@ -160,6 +162,7 @@ export function MailList({
                   unread={!email.is_read}
                   checked={Boolean(multiSelect[email.id])}
                   selected={selectedEmailId === email.id}
+                  starred={Boolean(email.is_starred)}
                   onToggleSelect={() =>
                     setMultiSelect((prev) => ({ ...prev, [email.id]: !prev[email.id] }))
                   }
@@ -167,6 +170,7 @@ export function MailList({
                   onArchive={() => onArchive(email.id)}
                   onDelete={() => onDelete(email.id)}
                   onToggleRead={() => onToggleRead(email)}
+                  onToggleStar={() => onToggleStar(email)}
                 />
               </div>
             )

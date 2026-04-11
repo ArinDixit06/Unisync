@@ -1,4 +1,4 @@
-import { Archive, MailOpen, Trash2 } from "lucide-react"
+import { Archive, MailOpen, Star, Trash2 } from "lucide-react"
 import { accountColorFor } from "../../lib/accountColors"
 
 export function MailItem({
@@ -12,11 +12,13 @@ export function MailItem({
   unread,
   checked,
   selected,
+  starred,
   onToggleSelect,
   onClick,
   onArchive,
   onDelete,
-  onToggleRead
+  onToggleRead,
+  onToggleStar
 }: {
   sender: string
   subject: string
@@ -28,12 +30,15 @@ export function MailItem({
   unread?: boolean
   checked?: boolean
   selected?: boolean
+  starred?: boolean
   onToggleSelect?: () => void
   onClick?: () => void
   onArchive?: () => void
   onDelete?: () => void
   onToggleRead?: () => void
+  onToggleStar?: () => void
 }) {
+  const isStarred = Boolean(starred)
   const accountColors = accountColorFor(accountEmail)
   const initials = sender
     .split(" ")
@@ -56,7 +61,7 @@ export function MailItem({
       role="button"
       tabIndex={0}
       onClick={onClick}
-      className={`group grid w-full min-w-0 grid-cols-[auto_auto_minmax(140px,220px)_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-gray-200/80 px-4 py-3 transition duration-150 hover:bg-gray-50 ${
+      className={`group grid w-full min-w-0 grid-cols-[auto_auto_minmax(140px,220px)_minmax(0,1fr)_auto_auto_auto] items-center gap-3 border-b border-gray-200/80 px-4 py-3 transition duration-150 hover:bg-gray-50 ${
         selected ? "bg-blue-50/80" : "bg-white"
       }`}
     >
@@ -96,7 +101,23 @@ export function MailItem({
         ) : null}
         <span className="shrink-0 text-xs text-gray-400">{time}</span>
       </div>
-      <div className="mt-1 flex items-center gap-1 justify-self-end opacity-0 transition group-hover:opacity-100">
+      <div className="mt-1 flex items-center gap-1 justify-self-end">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onToggleStar?.()
+          }}
+          className={`rounded-full border p-2 transition ${
+            isStarred
+              ? "border-amber-200 text-amber-600 hover:border-amber-300 hover:text-amber-700"
+              : "border-gray-200 text-gray-500 hover:border-amber-300 hover:text-amber-600"
+          }`}
+          aria-label={isStarred ? "Unstar" : "Star"}
+          aria-pressed={isStarred}
+        >
+          <Star size={14} className={isStarred ? "fill-current" : ""} />
+        </button>
         <button
           type="button"
           onClick={(event) => {
