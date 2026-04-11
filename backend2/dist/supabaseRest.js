@@ -24,6 +24,13 @@ function applyFilters(search, filters) {
         search.set(column, `${operator}.${value}`);
     }
 }
+function parseContentRangeTotal(response) {
+    const contentRange = response.headers.get("content-range") || "";
+    const match = contentRange.match(/\/(\d+|\*)$/);
+    if (!match || match[1] === "*")
+        return 0;
+    return Number(match[1]);
+}
 async function readJson(response) {
     if (response.status === 204)
         return {};
@@ -79,4 +86,17 @@ export async function remove(table, options) {
     });
     await readJson(response);
     return true;
+}
+export async function count(table, options = {}) {
+    const search = new URLSearchParams({ select: "id" });
+    applyFilters(search, options.filters);
+    const requestHeaders = headers(options.userToken, options.useService);
+    requestHeaders.Prefer = "count=exact";
+    requestHeaders.Range = "0-0";
+    const response = await fetch(`${restUrl()}/${table}?${search.toString()}`, {
+        method: "GET",
+        headers: requestHeaders
+    });
+    await readJson(response);
+    return parseContentRangeTotal(response);
 }

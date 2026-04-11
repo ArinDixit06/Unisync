@@ -21,6 +21,7 @@ export interface SidebarProps {
   activeFilter: "all" | "unread" | "starred" | "high_risk" | "snoozed" | "sent" | "drafts" | "trash"
   activeCategory: EmailCategory
   activeLabelId: string | null
+  starredCount?: number
   syncing?: boolean
   syncDisabled?: boolean
   account: AccountOption
@@ -42,6 +43,7 @@ export function Sidebar({
   activeFilter,
   activeCategory,
   activeLabelId,
+  starredCount,
   syncing,
   syncDisabled,
   account,
@@ -174,6 +176,7 @@ export function Sidebar({
               ].map((item) => {
                 const active = activeFilter === item.id
                 const Icon = item.icon
+                const showStarCount = item.id === "starred" && typeof starredCount === "number"
                 return (
                   <button
                     key={item.id}
@@ -186,7 +189,16 @@ export function Sidebar({
                     }`}
                   >
                     <Icon size={16} />
-                    {!collapsed ? <span>{item.label}</span> : null}
+                    {!collapsed ? (
+                      <span className="flex flex-1 items-center justify-between gap-2">
+                        <span>{item.label}</span>
+                        {showStarCount ? (
+                          <span className="rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-gray-500 shadow-sm">
+                            {starredCount}
+                          </span>
+                        ) : null}
+                      </span>
+                    ) : null}
                   </button>
                 )
               })}

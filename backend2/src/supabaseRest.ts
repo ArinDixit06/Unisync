@@ -32,6 +32,13 @@ function applyFilters(search: URLSearchParams, filters?: Filter[]): void {
   }
 }
 
+function parseContentRangeTotal(response: Response): number {
+  const contentRange = response.headers.get("content-range") || ""
+  const match = contentRange.match(/\/(\d+|\*)$/)
+  if (!match || match[1] === "*") return 0
+  return Number(match[1])
+}
+
 async function readJson(response: Response): Promise<unknown> {
   if (response.status === 204) return {};
   const text = await response.text();
@@ -107,4 +114,27 @@ export async function remove(
   });
   await readJson(response);
   return true;
+}
+
+export async function count(
+  table: string,
+  options: {
+    filters?: Filter[];
+    userToken?: string | null;
+    useService?: boolean;
+  } = {}
+): Promise<number> {
+  const search = new URLSearchParams({ select: "id" });
+  applyFilters(search, options.filters);
+
+  const requestHeaders = headers(options.userToken, options.useService);
+  requestHeaders.Prefer = "count=exact";
+  requestHeaders.Range = "0-0";
+
+  const response = await fetch(`${restUrl()}/${table}?${search.toString()}`, {
+    method: "GET",
+    headers: requestHeaders
+  });
+  await readJson(response);
+  return parseContentRangeTotal(response);
 }

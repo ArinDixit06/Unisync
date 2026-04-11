@@ -6,7 +6,7 @@ import { decryptMailJson, decryptMailText } from "../mailCrypto.js";
 import { notFound } from "../errors.js";
 import { RateLimiter, rateLimit, userKey } from "../rateLimit.js";
 import { bumpUserCacheVersion, getCachedJson, getUserCacheVersion, setCachedJson } from "../services/cache.js";
-import { insert, select, update } from "../supabaseRest.js";
+import { count, insert, select, update } from "../supabaseRest.js";
 const router = Router();
 const emailLimiter = new RateLimiter(120, "emails");
 router.use(requireUser);
@@ -35,12 +35,35 @@ function detectEvent(bodyHtml, subject) {
         description: results[0].text
     };
 }
+function buildListQuery(request) {
+    const accountId = request.query.account_id ? String(request.query.account_id) : null;
+    const category = request.query.category ? String(request.query.category) : null;
+    const filter = request.query.filter ? String(request.query.filter) : null;
+    const labelId = request.query.label_id ? String(request.query.label_id) : null;
+    const filters = [["user_id", "eq", request.currentUser.userId]];
+    if (accountId)
+        filters.push(["account_id", "eq", accountId]);
+    if (category)
+        filters.push(["category", "eq", category]);
+    if (filter === "trash")
+        filters.push(["is_deleted", "eq", "true"]);
+    else {
+        filters.push(["is_deleted", "eq", "false"]);
+        filters.push(["is_archived", "eq", "false"]);
+    }
+    if (filter === "unread")
+        filters.push(["is_read", "eq", "false"]);
+    else if (filter === "starred")
+        filters.push(["is_starred", "eq", "true"]);
+    else if (filter === "high_risk")
+        filters.push(["risk_level", "eq", "high"]);
+    else if (filter === "snoozed")
+        filters.push(["is_snoozed", "eq", "true"]);
+    return { accountId, category, filter, labelId, filters };
+}
 router.get("/", async (request, response, next) => {
     try {
-        const accountId = request.query.account_id ? String(request.query.account_id) : null;
-        const category = request.query.category ? String(request.query.category) : null;
-        const filter = request.query.filter ? String(request.query.filter) : null;
-        const labelId = request.query.label_id ? String(request.query.label_id) : null;
+        const { accountId, category, filter, labelId, filters } = buildListQuery(request);
         const offset = Number(request.query.offset ?? 0);
         const limit = Math.min(Number(request.query.limit ?? 50), 100);
         const cachePayload = {
@@ -58,25 +81,6 @@ router.get("/", async (request, response, next) => {
             response.json(cached);
             return;
         }
-        const filters = [["user_id", "eq", request.currentUser.userId]];
-        if (accountId)
-            filters.push(["account_id", "eq", accountId]);
-        if (category)
-            filters.push(["category", "eq", category]);
-        if (filter === "trash")
-            filters.push(["is_deleted", "eq", "true"]);
-        else {
-            filters.push(["is_deleted", "eq", "false"]);
-            filters.push(["is_archived", "eq", "false"]);
-        }
-        if (filter === "unread")
-            filters.push(["is_read", "eq", "false"]);
-        else if (filter === "starred")
-            filters.push(["is_starred", "eq", "true"]);
-        else if (filter === "high_risk")
-            filters.push(["risk_level", "eq", "high"]);
-        else if (filter === "snoozed")
-            filters.push(["is_snoozed", "eq", "true"]);
         if (labelId) {
             const labelRows = await select("email_labels", "email_id", {
                 filters: [["label_id", "eq", labelId]],
@@ -103,6 +107,50 @@ router.get("/", async (request, response, next) => {
         });
         const payload = { emails, next_offset: emails.length === limit ? offset + emails.length : null };
         await setCachedJson("emails:list", cachePayload, payload, 15);
+        response.json(payload);
+    }
+    catch (error) {
+        next(error);
+    }
+});
+router.get("/count", async (request, response, next) => {
+    try {
+        const { labelId, filters } = buildListQuery(request);
+        const cachePayload = {
+            user_id: request.currentUser.userId,
+            accountId: request.query.account_id ? String(request.query.account_id) : null,
+            category: request.query.category ? String(request.query.category) : null,
+            filter: request.query.filter ? String(request.query.filter) : null,
+            labelId,
+            version: await getUserCacheVersion(request.currentUser.userId)
+        };
+        const cached = await getCachedJson("emails:count", cachePayload);
+        if (cached) {
+            response.json(cached);
+            return;
+        }
+        const countFilters = [...filters];
+        if (labelId) {
+            const labelRows = await select("email_labels", "email_id", {
+                filters: [["label_id", "eq", labelId]],
+                userToken: request.currentUser.token
+            });
+            const emailIds = labelRows.map((row) => row.email_id);
+            if (!emailIds.length) {
+                const payload = { count: 0 };
+                await setCachedJson("emails:count", cachePayload, payload, 15);
+                response.json(payload);
+                return;
+            }
+            countFilters.push(["id", "in", `(${emailIds.join(",")})`]);
+        }
+        const payload = {
+            count: await count("emails", {
+                filters: countFilters,
+                userToken: request.currentUser.token
+            })
+        };
+        await setCachedJson("emails:count", cachePayload, payload, 15);
         response.json(payload);
     }
     catch (error) {

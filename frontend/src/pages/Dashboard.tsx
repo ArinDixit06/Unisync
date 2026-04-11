@@ -35,6 +35,19 @@ export function Dashboard() {
     queryFn: () => apiFetch("/labels")
   })
 
+  const { data: starredCountData } = useQuery({
+    queryKey: ["emails-count", activeAccountId, activeCategory, activeLabelId],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (activeAccountId) params.set("account_id", activeAccountId)
+      if (activeCategory !== "all") params.set("category", activeCategory)
+      if (activeLabelId) params.set("label_id", activeLabelId)
+      params.set("filter", "starred")
+      return apiFetch(`/emails/count?${params.toString()}`)
+    },
+    enabled: activeFilter !== "drafts"
+  })
+
   useEffect(() => {
     if (accountsData?.accounts) {
       setLinkedAccounts(accountsData.accounts)
@@ -195,6 +208,7 @@ export function Dashboard() {
       body: JSON.stringify({ is_archived: true })
     })
     queryClient.invalidateQueries({ queryKey: ["emails"] })
+    queryClient.invalidateQueries({ queryKey: ["emails-count"] })
     if (selectedEmailId === emailId) setState({ selectedEmailId: null })
   }
 
@@ -207,6 +221,7 @@ export function Dashboard() {
     }
     await apiFetch(`/emails/${emailId}`, { method: "DELETE" })
     queryClient.invalidateQueries({ queryKey: ["emails"] })
+    queryClient.invalidateQueries({ queryKey: ["emails-count"] })
     if (selectedEmailId === emailId) setState({ selectedEmailId: null })
   }
 
@@ -218,6 +233,7 @@ export function Dashboard() {
     })
     queryClient.invalidateQueries({ queryKey: ["emails"] })
     queryClient.invalidateQueries({ queryKey: ["email", email.id] })
+    queryClient.invalidateQueries({ queryKey: ["emails-count"] })
   }
 
   const handleToggleStar = async (email: any) => {
@@ -248,6 +264,7 @@ export function Dashboard() {
 
     queryClient.invalidateQueries({ queryKey: ["emails"] })
     queryClient.invalidateQueries({ queryKey: ["email", email.id] })
+    queryClient.invalidateQueries({ queryKey: ["emails-count"] })
   }
 
   const handleConfirmEvent = async (eventId: string) => {
@@ -269,6 +286,7 @@ export function Dashboard() {
         await apiFetch(`/sync/account/${accountId}`, { method: "POST" })
       }
       queryClient.invalidateQueries({ queryKey: ["emails"] })
+      queryClient.invalidateQueries({ queryKey: ["emails-count"] })
     } finally {
       setSyncing(false)
     }
@@ -318,6 +336,7 @@ export function Dashboard() {
     }
     queryClient.invalidateQueries({ queryKey: ["accounts"] })
     queryClient.invalidateQueries({ queryKey: ["emails"] })
+    queryClient.invalidateQueries({ queryKey: ["emails-count"] })
     queryClient.invalidateQueries({ queryKey: ["drafts"] })
   }
 
@@ -367,6 +386,7 @@ export function Dashboard() {
         activeFilter,
         activeCategory,
         activeLabelId,
+        starredCount: starredCountData?.count ?? 0,
         syncing,
         syncDisabled: !linkedAccounts.length || syncing,
         account: activeAccount,
