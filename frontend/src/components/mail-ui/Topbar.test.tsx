@@ -14,4 +14,17 @@ describe("Topbar", () => {
 
     expect(screen.getByText("Syncing mailbox")).toBeInTheDocument()
   })
+
+  it("shows the Connect Gmail button when requested", () => {
+    render(
+      <Topbar
+        onCompose={() => {}}
+        onSync={() => {}}
+        onConnectGmail={() => {}}
+        showConnectGmail
+      />
+    )
+
+    expect(screen.getByRole("button", { name: "Connect Gmail" })).toBeInTheDocument()
+  })
 })

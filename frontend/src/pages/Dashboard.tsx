@@ -415,7 +415,7 @@ export function Dashboard() {
           onCompose={() => setComposeOpen(true)}
           onSync={handleSync}
           onConnectGmail={handleConnectGmail}
-          showConnectGmail={!linkedAccounts.length}
+          showConnectGmail={!gmailAccounts.length}
           syncDisabled={!linkedAccounts.length || syncing}
           syncLoading={syncing}
           syncAnnouncement={syncAnnouncement}
@@ -454,7 +454,7 @@ export function Dashboard() {
           aria-label="Email preview"
           aria-selected={Boolean(selectedEmailId)}
         >
-          <div className="h-full border-l border-gray-200/70 bg-white">
+          <div className="flex h-full w-full min-w-0 flex-1 border-l border-gray-200/70 bg-white">
             <MailPreview
               email={activeFilter === "drafts" ? draftDetail : emailDetail}
               onArchive={() => emailDetail && handleArchive(emailDetail.id)}
