@@ -424,7 +424,11 @@ export function Dashboard() {
         />
       }
       list={
-        <div id="mail-list" className="h-full border-r border-gray-200/70 bg-white" tabIndex={-1}>
+        <div
+          id="mail-list"
+          className="flex h-full w-full min-w-0 flex-1 overflow-hidden border-r border-gray-200/70 bg-white"
+          tabIndex={-1}
+        >
           <MailList
             emails={emails}
             selectedEmailId={selectedEmailId}
