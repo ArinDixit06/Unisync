@@ -46,22 +46,16 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="shrink-0">{topbar}</div>
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          {/* Email list: always visible on desktop (fixed 400px), full-width on mobile only when no email is open */}
           <main
             className={`relative overflow-hidden transition-all duration-200 ${
-              detailOpen
-                ? "hidden lg:flex lg:w-[400px] lg:shrink-0 lg:border-r lg:border-gray-200/70"
-                : "flex min-w-0 w-full flex-1 lg:w-[400px] lg:flex-none lg:shrink-0 lg:border-r lg:border-gray-200/70"
+              detailOpen ? "hidden w-0 lg:hidden" : "flex min-w-0 w-full flex-1"
             }`}
           >
             {list}
           </main>
-          {/* Detail panel: always visible on desktop (flex-1), full-width on mobile only when email is open */}
           <aside
             className={`relative overflow-hidden transition-all duration-200 ${
-              detailOpen
-                ? "flex min-w-0 w-full flex-1"
-                : "hidden lg:flex lg:min-w-0 lg:flex-1"
+              detailOpen ? "flex min-w-0 w-full flex-1" : "hidden w-0"
             }`}
           >
             {detail}
