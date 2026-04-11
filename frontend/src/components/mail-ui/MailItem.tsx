@@ -61,7 +61,7 @@ export function MailItem({
       role="button"
       tabIndex={0}
       onClick={onClick}
-      className={`group grid w-full min-w-0 grid-cols-[auto_auto_minmax(140px,220px)_minmax(0,1fr)_auto_auto_auto] items-center gap-3 border-b border-gray-200/80 px-4 py-3 transition duration-150 hover:bg-gray-50 ${
+      className={`group grid w-full min-w-0 grid-cols-[auto_auto_minmax(140px,220px)_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-gray-200/80 px-4 py-3 transition duration-150 hover:bg-gray-50 ${
         selected ? "bg-blue-50/80" : "bg-white"
       }`}
     >
@@ -111,7 +111,7 @@ export function MailItem({
           className={`rounded-full border p-2 transition ${
             isStarred
               ? "border-amber-200 text-amber-600 hover:border-amber-300 hover:text-amber-700"
-              : "border-gray-200 text-gray-500 hover:border-amber-300 hover:text-amber-600"
+              : "border-gray-200 text-gray-400 opacity-0 group-hover:opacity-100 hover:border-amber-300 hover:text-amber-600"
           }`}
           aria-label={isStarred ? "Unstar" : "Star"}
           aria-pressed={isStarred}
@@ -124,7 +124,7 @@ export function MailItem({
             event.stopPropagation()
             onToggleRead?.()
           }}
-          className="rounded-full border border-gray-200 p-2 text-gray-500 hover:border-blue-300 hover:text-blue-600"
+          className="rounded-full border border-gray-200 p-2 text-gray-500 opacity-0 transition group-hover:opacity-100 hover:border-blue-300 hover:text-blue-600"
           aria-label={unread ? "Mark read" : "Mark unread"}
         >
           <MailOpen size={14} />
@@ -135,7 +135,7 @@ export function MailItem({
             event.stopPropagation()
             onArchive?.()
           }}
-          className="rounded-full border border-gray-200 p-2 text-gray-500 hover:border-blue-300 hover:text-blue-600"
+          className="rounded-full border border-gray-200 p-2 text-gray-500 opacity-0 transition group-hover:opacity-100 hover:border-blue-300 hover:text-blue-600"
           aria-label="Archive"
         >
           <Archive size={14} />
@@ -146,7 +146,7 @@ export function MailItem({
             event.stopPropagation()
             onDelete?.()
           }}
-          className="rounded-full border border-gray-200 p-2 text-gray-500 hover:border-rose-300 hover:text-rose-600"
+          className="rounded-full border border-gray-200 p-2 text-gray-500 opacity-0 transition group-hover:opacity-100 hover:border-rose-300 hover:text-rose-600"
           aria-label="Delete"
         >
           <Trash2 size={14} />
