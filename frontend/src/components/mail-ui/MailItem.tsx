@@ -1,4 +1,5 @@
 import { Archive, MailOpen, Trash2 } from "lucide-react"
+import { accountColorFor } from "../../lib/accountColors"
 
 export function MailItem({
   sender,
@@ -6,6 +7,8 @@ export function MailItem({
   preview,
   time,
   priority,
+  sourceLabel,
+  accountEmail,
   unread,
   checked,
   selected,
@@ -20,6 +23,8 @@ export function MailItem({
   preview: string
   time: string
   priority?: "high" | "medium" | "low" | string | null
+  sourceLabel?: string | null
+  accountEmail?: string | null
   unread?: boolean
   checked?: boolean
   selected?: boolean
@@ -29,6 +34,7 @@ export function MailItem({
   onDelete?: () => void
   onToggleRead?: () => void
 }) {
+  const accountColors = accountColorFor(accountEmail)
   const initials = sender
     .split(" ")
     .map((part) => part[0])
@@ -50,8 +56,8 @@ export function MailItem({
       role="button"
       tabIndex={0}
       onClick={onClick}
-      className={`group flex w-full items-start gap-3 rounded-xl px-4 py-3 transition duration-150 hover:bg-gray-50 ${
-        selected ? "bg-blue-50" : ""
+      className={`group grid w-full min-w-0 grid-cols-[auto_auto_minmax(140px,220px)_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-gray-200/80 px-4 py-3 transition duration-150 hover:bg-gray-50 ${
+        selected ? "bg-blue-50/80" : "bg-white"
       }`}
     >
       <input
@@ -67,24 +73,30 @@ export function MailItem({
       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-700">
         {initials}
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-3">
-          <span className="truncate text-sm font-semibold text-gray-900">{sender}</span>
-          <span className="shrink-0 text-xs text-gray-400">{time}</span>
-        </div>
-        <div className="truncate text-sm font-medium text-gray-700">{subject}</div>
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="min-w-0 truncate text-xs text-gray-500">{preview}</span>
-          {priority ? (
-            <span
-              className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${priorityStyles}`}
-            >
-              {priority}
-            </span>
-          ) : null}
-        </div>
+      <div className="min-w-0">
+        <span className="block truncate text-sm font-semibold text-gray-900">{sender}</span>
       </div>
-      <div className="mt-1 flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+      <div className="min-w-0 flex items-center gap-2">
+        <span className="truncate text-sm font-medium text-gray-800">{subject}</span>
+        {preview ? <span className="min-w-0 truncate text-sm text-gray-500">- {preview}</span> : null}
+      </div>
+      <div className="flex shrink-0 items-center gap-2 justify-self-end">
+        {sourceLabel ? (
+          <span className={`hidden max-w-[180px] shrink-0 items-center gap-2 truncate rounded-full border px-2 py-0.5 text-[11px] font-semibold xl:inline-flex ${accountColors.pill}`}>
+            <span className={`h-2 w-2 shrink-0 rounded-full ${accountColors.dot}`} />
+            <span className="truncate">{sourceLabel}</span>
+          </span>
+        ) : null}
+        {priority ? (
+          <span
+            className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${priorityStyles}`}
+          >
+            {priority}
+          </span>
+        ) : null}
+        <span className="shrink-0 text-xs text-gray-400">{time}</span>
+      </div>
+      <div className="mt-1 flex items-center gap-1 justify-self-end opacity-0 transition group-hover:opacity-100">
         <button
           type="button"
           onClick={(event) => {

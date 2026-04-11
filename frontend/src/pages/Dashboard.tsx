@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query"
-import { apiFetch } from "../lib/api"
+import { apiFetch, getWsBaseUrl } from "../lib/api"
 import { AppShell, TopBar } from "../components/layout"
 import { ComposeButton, MailList, MailPreview } from "../components/mail-ui"
 import { ComposeModal } from "../components/compose/ComposeModal"
@@ -9,10 +9,9 @@ import { useUIStore } from "../stores/uiStore"
 import { useAuthStore } from "../stores/authStore"
 import { supabase, supabaseConfigured } from "../lib/supabase"
 
-const DEFAULT_PRODUCTION_WS_URL = "wss://unisync-pztl.onrender.com"
-
 export function Dashboard() {
   const [composeOpen, setComposeOpen] = useState(false)
+  const [composeInitialData, setComposeInitialData] = useState<any | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const queryClient = useQueryClient()
@@ -21,11 +20,7 @@ export function Dashboard() {
   const { activeAccountId, activeCategory, activeFilter, activeLabelId, selectedEmailId, sidebarOpen, setState } =
     useUIStore()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const resolvedWsBaseUrl =
-    import.meta.env.VITE_WS_URL ||
-    (import.meta.env.PROD
-      ? DEFAULT_PRODUCTION_WS_URL
-      : `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}`)
+  const resolvedWsBaseUrl = getWsBaseUrl()
 
   const { data: accountsData } = useQuery({
     queryKey: ["accounts"],
@@ -33,6 +28,7 @@ export function Dashboard() {
     enabled: Boolean(accessToken)
   })
   const linkedAccounts = accountsData?.accounts || []
+  const gmailAccounts = linkedAccounts.filter((account: any) => account.provider === "gmail")
 
   const { data: labelsData } = useQuery({
     queryKey: ["labels"],
@@ -259,7 +255,8 @@ export function Dashboard() {
         ...linkedAccounts.map((account: any) => ({
           id: account.id,
           name: account.display_name || account.email_address || account.provider?.toUpperCase?.() || "Account",
-          email: account.email_address || "Connected"
+          email: account.email_address || "Connected",
+          provider: account.provider
         }))
       ]
     : [{ id: "local", name: "Primary", email: "student@unisync.app" }]
@@ -267,6 +264,56 @@ export function Dashboard() {
   const activeAccount =
     accountOptions.find((account) => account.id === (activeAccountId || "all")) || accountOptions[0]
   const syncAnnouncement = syncing ? "Syncing mailbox" : "Mail sync ready"
+  const detailOpen = Boolean(selectedEmailId)
+
+  const handleDisconnectAccount = async (accountId: string) => {
+    await apiFetch(`/auth/accounts/${accountId}`, { method: "DELETE" })
+    if (activeAccountId === accountId) {
+      setState({ activeAccountId: null, selectedEmailId: null })
+    }
+    queryClient.invalidateQueries({ queryKey: ["accounts"] })
+    queryClient.invalidateQueries({ queryKey: ["emails"] })
+    queryClient.invalidateQueries({ queryKey: ["drafts"] })
+  }
+
+  const buildReplyBody = (email: any) => {
+    const body = email?.body_html || ""
+    const receivedAt = email?.received_at ? new Date(email.received_at).toLocaleString() : ""
+    return `<p><br /></p><hr /><p><strong>From:</strong> ${email?.sender_name || email?.sender_email || ""} &lt;${email?.sender_email || ""}&gt;<br/><strong>Sent:</strong> ${receivedAt}<br/><strong>Subject:</strong> ${email?.subject || ""}</p>${body}`
+  }
+
+  const replyHeadersFromEmail = (email: any) => {
+    const headers = email?.raw_headers || {}
+    const messageId = headers["message-id"] || null
+    const existingReferences = headers.references || null
+    return {
+      inReplyTo: messageId,
+      references: [existingReferences, messageId].filter(Boolean).join(" ").trim() || null
+    }
+  }
+
+  const handleReply = (email: any) => {
+    const headers = replyHeadersFromEmail(email)
+    setComposeInitialData({
+      accountId: email?.account_id || null,
+      to: email?.sender_email ? [email.sender_email] : [],
+      subject: email?.subject?.startsWith("Re:") ? email.subject : `Re: ${email?.subject || ""}`,
+      bodyHtml: buildReplyBody(email),
+      threadId: email?.thread_id || null,
+      inReplyTo: headers.inReplyTo,
+      references: headers.references
+    })
+    setComposeOpen(true)
+  }
+
+  const handleForward = (email: any) => {
+    setComposeInitialData({
+      accountId: email?.account_id || null,
+      subject: email?.subject?.startsWith("Fwd:") ? email.subject : `Fwd: ${email?.subject || ""}`,
+      bodyHtml: buildReplyBody(email)
+    })
+    setComposeOpen(true)
+  }
 
   return (
     <AppShell
@@ -290,8 +337,12 @@ export function Dashboard() {
           setState({ activeAccountId: accountId === "all" ? null : accountId, selectedEmailId: null })
           setSidebarCollapsed(false)
         },
+        onDisconnectAccount: (accountId) => {
+          void handleDisconnectAccount(accountId)
+        },
         onLogout: handleLogout
       }}
+      detailOpen={detailOpen}
       sidebarOpen={sidebarOpen}
       onSidebarToggle={() => setState({ sidebarOpen: !sidebarOpen })}
       topbar={
@@ -347,6 +398,8 @@ export function Dashboard() {
                   : emailDetail && handleDelete(emailDetail.id)
               }
               onToggleRead={() => emailDetail && handleToggleRead(emailDetail)}
+              onReply={() => emailDetail && handleReply(emailDetail)}
+              onForward={() => emailDetail && handleForward(emailDetail)}
               onConfirmEvent={handleConfirmEvent}
               onDismissEvent={handleDismissEvent}
               onClose={() => setState({ selectedEmailId: null })}
@@ -356,7 +409,15 @@ export function Dashboard() {
       }
     >
       <SearchCommand open={searchOpen} onClose={() => setSearchOpen(false)} />
-      {composeOpen && <ComposeModal onClose={() => setComposeOpen(false)} />}
+      {composeOpen && (
+        <ComposeModal
+          onClose={() => {
+            setComposeOpen(false)
+            setComposeInitialData(null)
+          }}
+          initialData={composeInitialData}
+        />
+      )}
       <div className="lg:hidden">
         <ComposeButton onClick={() => setComposeOpen(true)} floating />
       </div>

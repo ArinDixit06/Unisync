@@ -1,4 +1,4 @@
-﻿{
+{
   "services": {
     "frontend": {
       "buildCommand": "cd frontend && npm ci && npm run build",
@@ -6,13 +6,9 @@
       "healthcheckPath": "/"
     },
     "api": {
-      "buildCommand": "cd backend && pip install -r requirements.txt",
-      "startCommand": "cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000",
+      "buildCommand": "cd backend2 && npm install && npm run build",
+      "startCommand": "cd backend2 && npm start",
       "healthcheckPath": "/health"
-    },
-    "worker": {
-      "buildCommand": "cd backend && pip install -r requirements.txt",
-      "startCommand": "cd backend && arq app.workers.worker.WorkerSettings"
     },
     "redis": {
       "image": "redis:7-alpine"

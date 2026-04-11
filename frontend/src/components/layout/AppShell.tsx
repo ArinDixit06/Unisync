@@ -5,6 +5,7 @@ export function AppShell({
   topbar,
   list,
   detail,
+  detailOpen,
   sidebarOpen,
   onSidebarToggle,
   children
@@ -13,6 +14,7 @@ export function AppShell({
   topbar: React.ReactNode
   list: React.ReactNode
   detail: React.ReactNode
+  detailOpen: boolean
   sidebarOpen: boolean
   onSidebarToggle: () => void
   children?: React.ReactNode
@@ -44,8 +46,20 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="shrink-0">{topbar}</div>
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          <main className="relative flex w-full flex-none overflow-hidden lg:w-[360px]">{list}</main>
-          <aside className="relative w-0 flex-1 overflow-hidden lg:w-auto">{detail}</aside>
+          <main
+            className={`relative overflow-hidden transition-all duration-200 ${
+              detailOpen ? "hidden w-0 lg:hidden" : "flex min-w-0 w-full flex-1"
+            }`}
+          >
+            {list}
+          </main>
+          <aside
+            className={`relative overflow-hidden transition-all duration-200 ${
+              detailOpen ? "flex min-w-0 w-full flex-1" : "hidden w-0"
+            }`}
+          >
+            {detail}
+          </aside>
         </div>
       </div>
       {children}

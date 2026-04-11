@@ -1,6 +1,5 @@
 ﻿import asyncio
 import time
-import jwt
 from fastapi import FastAPI, Request, HTTPException
 import httpx
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +9,7 @@ from app.logging import configure_logging, get_logger
 from app.db import init_db, close_db
 from app.realtime_bus import listen_and_forward
 from app.config import settings, frontend_origins
+from app.supabase_auth import get_token_subject
 from app.routers import health, auth, emails, compose, search, labels, calendar, webhooks, sync, realtime
 
 logger = get_logger()
@@ -92,23 +92,7 @@ def _extract_user_id(request: Request) -> str | None:
     if not auth_header or not auth_header.lower().startswith("bearer "):
         return None
     token = auth_header.split(" ", 1)[1].strip()
-    try:
-        payload = jwt.decode(
-            token,
-            settings.supabase_jwt_secret,
-            algorithms=["HS256"],
-            options={"verify_aud": False},
-        )
-        return payload.get("sub")
-    except jwt.PyJWTError:
-        try:
-            payload = jwt.decode(
-                token,
-                options={"verify_signature": False, "verify_aud": False},
-            )
-            return payload.get("sub")
-        except jwt.PyJWTError:
-            return None
+    return get_token_subject(token)
 
 
 @app.middleware("http")

@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ChangeEvent } from "react"
 import { useEditor, EditorContent } from "@tiptap/react"
+import { useQueryClient } from "@tanstack/react-query"
 import StarterKit from "@tiptap/starter-kit"
 import Underline from "@tiptap/extension-underline"
 import Link from "@tiptap/extension-link"
@@ -8,9 +9,25 @@ import { useAuthStore } from "../../stores/authStore"
 import { apiFetch } from "../../lib/api"
 import "./compose.css"
 
-export function ComposeModal({ onClose }: { onClose: () => void }) {
+interface ComposeInitialData {
+  accountId?: string | null
+  to?: string[]
+  cc?: string[]
+  bcc?: string[]
+  subject?: string
+  bodyHtml?: string
+  threadId?: string | null
+  inReplyTo?: string | null
+  references?: string | null
+}
+
+const MAX_ATTACHMENT_BYTES = 150 * 1024 * 1024
+const MAX_ATTACHMENT_LABEL = "150 MB"
+
+export function ComposeModal({ onClose, initialData }: { onClose: () => void; initialData?: ComposeInitialData | null }) {
   const { linkedAccounts } = useAuthStore()
-  const accountId = linkedAccounts[0]?.id
+  const queryClient = useQueryClient()
+  const [accountId, setAccountId] = useState("")
   const [to, setTo] = useState("")
   const [cc, setCc] = useState("")
   const [bcc, setBcc] = useState("")
@@ -27,6 +44,32 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
     content: ""
   })
 
+  useEffect(() => {
+    if (!linkedAccounts.length) {
+      setAccountId("")
+      return
+    }
+    const requestedAccountId = initialData?.accountId
+    if (requestedAccountId && linkedAccounts.some((account) => account.id === requestedAccountId)) {
+      setAccountId(requestedAccountId)
+      return
+    }
+    setAccountId((current) => current && linkedAccounts.some((account) => account.id === current) ? current : linkedAccounts[0].id)
+  }, [initialData?.accountId, linkedAccounts])
+
+  useEffect(() => {
+    if (!initialData) return
+    setTo((initialData.to || []).join(", "))
+    setCc((initialData.cc || []).join(", "))
+    setBcc((initialData.bcc || []).join(", "))
+    setSubject(initialData.subject || "")
+  }, [initialData])
+
+  useEffect(() => {
+    if (!editor || initialData?.bodyHtml == null) return
+    editor.commands.setContent(initialData.bodyHtml)
+  }, [editor, initialData?.bodyHtml])
+
   const clearTimers = () => {
     if (sendTimeoutRef.current) window.clearTimeout(sendTimeoutRef.current)
     if (countdownRef.current) window.clearInterval(countdownRef.current)
@@ -37,6 +80,8 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     return () => clearTimers()
   }, [])
+
+  const attachmentBytes = attachments.reduce((total, file) => total + file.size, 0)
 
   const buildAttachmentPayload = async () => {
     return Promise.all(
@@ -67,7 +112,18 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
       .filter((item) => item.includes("@"))
 
   const sendNow = async () => {
-    if (!accountId) return
+    if (!accountId) {
+      alert("Choose which connected mailbox you want to send from.")
+      setIsSending(false)
+      setCountdown(5)
+      return
+    }
+    if (attachmentBytes > MAX_ATTACHMENT_BYTES) {
+      alert(`Attachments must be ${MAX_ATTACHMENT_LABEL} or less in total.`)
+      setIsSending(false)
+      setCountdown(5)
+      return
+    }
     try {
       const html = editor?.getHTML() || ""
       const attachmentPayload = await buildAttachmentPayload()
@@ -89,9 +145,14 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
           bcc: bccList,
           subject,
           body_html: html,
+          thread_id: initialData?.threadId || null,
+          in_reply_to: initialData?.inReplyTo || null,
+          references: initialData?.references || null,
           attachments: attachmentPayload
         })
       })
+      queryClient.invalidateQueries({ queryKey: ["emails"] })
+      queryClient.invalidateQueries({ queryKey: ["drafts"] })
       onClose()
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to send email."
@@ -120,6 +181,17 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
     setCountdown(5)
   }
 
+  const handleAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextAttachments = Array.from(event.target.files || [])
+    const nextSize = nextAttachments.reduce((total, file) => total + file.size, 0)
+    if (nextSize > MAX_ATTACHMENT_BYTES) {
+      alert(`Attachments must be ${MAX_ATTACHMENT_LABEL} or less in total.`)
+      event.target.value = ""
+      return
+    }
+    setAttachments(nextAttachments)
+  }
+
   return (
     <div className="compose-modal">
       <div className="compose-header">
@@ -127,6 +199,24 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
         <button className="compose-close" onClick={onClose} type="button">Close</button>
       </div>
       <div className="compose-body">
+        <label className="primitive-field">
+          <span className="primitive-label">From</span>
+          <select
+            value={accountId}
+            onChange={(event) => setAccountId(event.target.value)}
+            className="primitive-input"
+          >
+            {linkedAccounts.length ? (
+              linkedAccounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {(account.display_name || account.email_address || account.provider || "Account")} {account.email_address ? `(${account.email_address})` : ""}
+                </option>
+              ))
+            ) : (
+              <option value="">No connected account</option>
+            )}
+          </select>
+        </label>
         <Input label="To" value={to} onChange={(e) => setTo(e.target.value)} />
         <div style={{ display: "flex", gap: 8 }}>
           <Button size="sm" variant="ghost" onClick={() => setShowCc((prev) => !prev)}>CC</Button>
@@ -141,8 +231,11 @@ export function ComposeModal({ onClose }: { onClose: () => void }) {
         <input
           type="file"
           multiple
-          onChange={(e) => setAttachments(Array.from(e.target.files || []))}
+          onChange={handleAttachmentChange}
         />
+        <div style={{ fontSize: "var(--type-xs)", color: "var(--color-text-tertiary)", marginTop: 8 }}>
+          Attachment limit: {MAX_ATTACHMENT_LABEL} total
+        </div>
         <div className="attachment-list">
           {attachments.map((file) => (
             <div key={file.name} className="attachment-chip">

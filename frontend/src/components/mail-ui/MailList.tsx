@@ -91,7 +91,7 @@ export function MailList({
   ]
 
   return (
-    <section className="flex h-full flex-col">
+    <section className="flex h-full w-full min-w-0 flex-col">
       <div className="flex items-center justify-between border-b border-gray-200/70 bg-white px-4 py-3">
         <div>
           <p className="text-sm font-semibold text-gray-900">Mail</p>
@@ -123,7 +123,7 @@ export function MailList({
       </div>
       <div
         ref={listRef}
-        className="relative flex-1 overflow-y-auto px-2 pb-8 pt-3"
+        className="relative flex-1 w-full min-w-0 overflow-y-auto pb-8"
         role="list"
         tabIndex={0}
         onKeyDown={handleKeyDown}
@@ -135,7 +135,7 @@ export function MailList({
           }
         }}
       >
-        <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}>
+        <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: "100%", minWidth: "100%", position: "relative" }}>
           {rowVirtualizer.getVirtualItems().map((virtualRow) => {
             const email = emails[virtualRow.index]
             return (
@@ -155,6 +155,8 @@ export function MailList({
                   preview={email.preview_snippet || ""}
                   time={formatDistanceToNow(new Date(email.received_at), { addSuffix: true })}
                   priority={email.priority_level || email.risk_level}
+                  sourceLabel={email.account_email || null}
+                  accountEmail={email.account_email || null}
                   unread={!email.is_read}
                   checked={Boolean(multiSelect[email.id])}
                   selected={selectedEmailId === email.id}

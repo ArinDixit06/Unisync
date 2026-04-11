@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     )
 
     environment: str = "development"
-    api_base_url: str = "https://unisync-pztl.onrender.com"
+    api_base_url: str = "https://unisync-3kk2.onrender.com"
     frontend_url: str = "https://unisync-five.vercel.app"
     frontend_urls: Optional[str] = Field(default=None, validation_alias="FRONTEND_URLS")
 
@@ -56,7 +56,7 @@ def frontend_origins() -> list[str]:
     candidates = [
         settings.frontend_url,
         "https://unisync-five.vercel.app",
-        "https://unisync-pztl.onrender.com",
+        "https://unisync-3kk2.onrender.com",
     ]
     if settings.frontend_urls:
         candidates.extend(settings.frontend_urls.split(","))

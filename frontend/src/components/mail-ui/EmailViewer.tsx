@@ -64,6 +64,7 @@ const extractPlainFromPayload = (payload?: GmailPayload | null): string | null =
 const sanitizeEmailHtml = (html: string) => {
   const clean = DOMPurify.sanitize(html, {
     USE_PROFILES: { html: true },
+    ADD_DATA_URI_TAGS: ["img"],
     ADD_TAGS: ["style", "table", "thead", "tbody", "tfoot", "tr", "td", "th"],
     ADD_ATTR: [
       "target",
@@ -80,7 +81,8 @@ const sanitizeEmailHtml = (html: string) => {
       "cellspacing",
       "colspan",
       "rowspan",
-      "srcset"
+      "srcset",
+      "src"
     ]
   })
 
@@ -111,15 +113,15 @@ export function EmailViewer({ email }: { email: any }) {
 
   if (!html) {
     return (
-      <div className="rounded-lg bg-white p-6 shadow-sm">
+      <div className="w-full px-4 py-4 lg:px-6">
         <pre className="whitespace-pre-wrap text-sm text-gray-700">{plain}</pre>
       </div>
     )
   }
 
   return (
-    <div className="email-html mx-auto w-full max-w-[760px] rounded-lg bg-white p-6 shadow-sm">
-      <div dangerouslySetInnerHTML={{ __html: html }} />
+    <div className="email-html w-full px-4 py-4 lg:px-6">
+      <div className="w-full min-w-0" dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   )
 }
