@@ -1,4 +1,4 @@
-import { ArrowLeft, Paperclip, Reply, Forward, Archive, Trash2, MailOpen, Star, X } from "lucide-react"
+import { ArrowLeft, Paperclip, Reply, Forward, Archive, Trash2, MailOpen, X } from "lucide-react"
 import { EmptyState } from "./EmptyState"
 import { EmailViewer } from "./EmailViewer"
 import { safeParseJsonArray } from "../../lib/json"
@@ -100,24 +100,23 @@ export function MailPreview({
         </button>
         <button
           type="button"
-          onClick={onToggleStar}
-          className={`rounded-full border p-2 transition ${
-            email.is_starred
-              ? "border-amber-200 text-amber-600 hover:border-amber-300 hover:text-amber-700"
-              : "border-gray-200 text-gray-500 hover:border-amber-300 hover:text-amber-600"
-          }`}
-          aria-label={email.is_starred ? "Unstar" : "Star"}
-          aria-pressed={Boolean(email.is_starred)}
-        >
-          <Star size={16} className={email.is_starred ? "fill-current" : ""} />
-        </button>
-        <button
-          type="button"
           onClick={onDelete}
           className="rounded-full border border-gray-200 p-2 text-gray-500 transition hover:border-rose-300 hover:text-rose-600"
           aria-label="Delete"
         >
           <Trash2 size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleStar}
+          className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-none border-0 bg-transparent p-0 text-[20px] leading-none text-gray-500 transition hover:brightness-110 active:brightness-95 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+          aria-label={email.is_starred ? "Unstar" : "Star"}
+          aria-pressed={Boolean(email.is_starred)}
+          title={email.is_starred ? "Unstar" : "Star"}
+        >
+          <span aria-hidden="true" className={email.is_starred ? "text-[#F5A623]" : "text-gray-500"}>
+            {email.is_starred ? "★" : "☆"}
+          </span>
         </button>
       </div>
       <div className="flex items-start justify-between border-b border-gray-200/70 bg-white px-4 py-4 lg:px-6">

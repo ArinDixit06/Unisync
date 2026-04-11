@@ -153,6 +153,21 @@ export function Dashboard() {
       ? (draftsData?.drafts || []).find((draft: any) => draft.id === selectedEmailId) || null
       : null
 
+  const currentEmailsQueryKey = ["emails", activeAccountId, activeCategory, activeFilter, activeLabelId] as const
+
+  const updateInfiniteEmails = (current: any, emailId: string, isStarred: boolean) => {
+    if (!current?.pages) return current
+    return {
+      ...current,
+      pages: current.pages.map((page: any) => ({
+        ...page,
+        emails: Array.isArray(page?.emails)
+          ? page.emails.map((item: any) => (item.id === emailId ? { ...item, is_starred: isStarred } : item))
+          : page?.emails
+      }))
+    }
+  }
+
   useEffect(() => {
     if (activeFilter === "drafts") return
     if (selectedEmailId && !emails.some((email: any) => email.id === selectedEmailId)) {
@@ -207,10 +222,30 @@ export function Dashboard() {
 
   const handleToggleStar = async (email: any) => {
     if (activeFilter === "drafts") return
+    const nextIsStarred = !email.is_starred
+    const previousEmails = queryClient.getQueryData(currentEmailsQueryKey)
+    const previousEmailDetail = queryClient.getQueryData(["email", email.id])
+
+    queryClient.setQueryData(currentEmailsQueryKey, (current: any) =>
+      updateInfiniteEmails(current, email.id, nextIsStarred)
+    )
+    queryClient.setQueryData(["email", email.id], (current: any) =>
+      current ? { ...current, is_starred: nextIsStarred } : current
+    )
+
     await apiFetch(`/emails/${email.id}`, {
       method: "PATCH",
-      body: JSON.stringify({ is_starred: !email.is_starred })
+      body: JSON.stringify({ is_starred: nextIsStarred })
+    }).catch((error) => {
+      if (previousEmails !== undefined) {
+        queryClient.setQueryData(currentEmailsQueryKey, previousEmails)
+      }
+      if (previousEmailDetail !== undefined) {
+        queryClient.setQueryData(["email", email.id], previousEmailDetail)
+      }
+      throw error
     })
+
     queryClient.invalidateQueries({ queryKey: ["emails"] })
     queryClient.invalidateQueries({ queryKey: ["email", email.id] })
   }
