@@ -48,14 +48,18 @@ export function AppShell({
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <main
             className={`relative overflow-hidden transition-all duration-200 ${
-              detailOpen ? "hidden w-0 lg:hidden" : "flex min-w-0 w-full flex-1"
+              detailOpen
+                ? "hidden lg:flex lg:w-[400px] lg:shrink-0"
+                : "flex min-w-0 w-full flex-1"
             }`}
           >
             {list}
           </main>
           <aside
             className={`relative overflow-hidden transition-all duration-200 ${
-              detailOpen ? "flex min-w-0 w-full flex-1" : "hidden w-0"
+              detailOpen
+                ? "flex min-w-0 w-full flex-1"
+                : "hidden lg:flex lg:min-w-0 lg:flex-1"
             }`}
           >
             {detail}
