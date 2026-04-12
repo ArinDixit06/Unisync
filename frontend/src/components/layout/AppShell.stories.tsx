@@ -89,7 +89,7 @@ export const Default: Story = {
       }
       detail={
         <div
-          className="fixed inset-0 z-20 bg-[var(--color-bg-base)] transition duration-200 ease-out lg:static lg:inset-auto lg:z-auto lg:h-full lg:translate-x-0 translate-x-0"
+          className="fixed inset-0 z-20 w-full bg-[var(--color-bg-base)] transition duration-200 ease-out lg:static lg:inset-auto lg:z-auto lg:h-full lg:w-full lg:flex-1 lg:translate-x-0 translate-x-0"
           role="region"
           aria-label="Email preview"
           aria-selected="true"
