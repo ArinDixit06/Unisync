@@ -4,6 +4,7 @@ import re
 from bs4 import BeautifulSoup
 import dateparser
 from dateparser.search import search_dates
+from pydantic import BaseModel
 from app.auth import user_id_dep, user_token_dep
 from app.supabase_rest import select, update, insert
 from app.schemas import EmailUpdate, SnoozeRequest
@@ -11,6 +12,11 @@ from app.errors import not_found
 from app.rate_limit import RateLimiter, rate_limit, user_key
 from app.mail_crypto import decrypt_mail_json, decrypt_mail_text
 from app.services.cache import bump_user_cache_version, get_cached_json, get_user_cache_version, set_cached_json
+from app.services.gemini import email_insights
+
+
+class InsightsRequest(BaseModel):
+    question: str
 
 _email_limiter = RateLimiter(120, "emails")
 
@@ -348,3 +354,36 @@ async def get_thread(thread_id: str, user_id: str = Depends(user_id_dep), token:
         user_token=token,
     )
     return {"emails": [_hydrate_email(row) for row in rows]}
+
+
+@router.post("/{email_id}/insights")
+async def get_email_insights(
+    email_id: str,
+    payload: InsightsRequest,
+    user_id: str = Depends(user_id_dep),
+    token: str = Depends(user_token_dep),
+):
+    """Ask Gemini a free-form question about a specific email."""
+    if not payload.question or not payload.question.strip():
+        return {"answer": "Please ask a question.", "key_points": [], "suggested_action": None}
+
+    rows = await select(
+        "emails",
+        "id,user_id,subject,sender_name,sender_email,body_html,body_html_enc",
+        filters=[("id", "eq", email_id), ("user_id", "eq", user_id)],
+        user_token=token,
+    )
+    if not rows:
+        not_found("Email not found")
+
+    email = rows[0]
+    body_html = decrypt_mail_text(email.get("body_html_enc")) or email.get("body_html") or ""
+    body_text = BeautifulSoup(body_html, "html.parser").get_text(" ", strip=True)
+
+    result = await email_insights(
+        sender=email.get("sender_email") or "",
+        subject=email.get("subject") or "",
+        body=body_text,
+        question=payload.question.strip(),
+    )
+    return result

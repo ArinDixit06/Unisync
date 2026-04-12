@@ -205,3 +205,57 @@ async def extract_events(body: str) -> list[dict] | None:
             }
         )
     return normalized or None
+
+
+async def email_insights(
+    sender: str,
+    subject: str,
+    body: str,
+    question: str,
+) -> dict:
+    """
+    Answer a free-form question about an email using Gemini.
+    Returns {answer, key_points, suggested_action}.
+    """
+    bounded_body = _bounded_text(body, 5000)
+    bounded_question = _bounded_text(question, 400)
+
+    prompt = (
+        "You are an AI assistant helping a university student understand their email.\n"
+        "Given the email below, answer the user's question clearly and helpfully.\n"
+        "Return JSON only with this shape:\n"
+        '{"answer": "string (2-4 sentences)", '
+        '"key_points": ["string", ...] (2-4 bullet points), '
+        '"suggested_action": "string or null (one short recommended next step)"}\n\n'
+        f"SENDER: {_bounded_text(sender, 200)}\n"
+        f"SUBJECT: {_bounded_text(subject, 300)}\n"
+        f"BODY:\n{bounded_body}\n\n"
+        f"USER QUESTION: {bounded_question}"
+    )
+
+    try:
+        data = await _call_json(_flash_model(), prompt)
+    except Exception:
+        return {
+            "answer": "AI is temporarily unavailable. Please try again shortly.",
+            "key_points": [],
+            "suggested_action": None,
+        }
+
+    if not isinstance(data, dict):
+        return {
+            "answer": "Could not parse AI response.",
+            "key_points": [],
+            "suggested_action": None,
+        }
+
+    answer = str(data.get("answer", "")).strip()[:800] or "No answer generated."
+    key_points = [str(p).strip()[:200] for p in data.get("key_points", []) if str(p).strip()][:5]
+    suggested_action = str(data.get("suggested_action", "") or "").strip()[:300] or None
+
+    return {
+        "answer": answer,
+        "key_points": key_points,
+        "suggested_action": suggested_action,
+    }
+
