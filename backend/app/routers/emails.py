@@ -160,6 +160,20 @@ async def list_emails(
             return {"emails": []}
         quoted = ",".join(f'"{email}"' for email in account_emails)
         filters.append(("sender_email", "in", f"({quoted})"))
+    elif not filter:
+        # "All" view: exclude emails the user sent themselves (those belong in Sent folder only)
+        accounts = await select(
+            "linked_accounts",
+            "email_address,id",
+            filters=[("user_id", "eq", user_id)],
+            user_token=token,
+        )
+        if account_id:
+            accounts = [acc for acc in accounts if acc.get("id") == account_id]
+        account_emails = [acc.get("email_address") for acc in accounts if acc.get("email_address")]
+        if account_emails:
+            quoted = ",".join(f'"{email}"' for email in account_emails)
+            filters.append(("sender_email", "not.in", f"({quoted})"))
 
     if label_id:
         label_rows = await select(
