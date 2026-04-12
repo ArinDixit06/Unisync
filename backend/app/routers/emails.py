@@ -128,6 +128,18 @@ async def list_emails(
 
     filters: list[tuple[str, str, str]] = [("user_id", "eq", user_id)]
 
+    # Fetch the user's connected account emails once — these are the user's own addresses.
+    # Rule: emails FROM these addresses belong exclusively in the Sent folder.
+    all_linked = await select(
+        "linked_accounts",
+        "email_address,id",
+        filters=[("user_id", "eq", user_id)],
+        user_token=token,
+    )
+    # If viewing a specific account, scope to that account's address only.
+    scoped_accounts = [acc for acc in all_linked if acc.get("id") == account_id] if account_id else all_linked
+    my_emails = [acc["email_address"] for acc in scoped_accounts if acc.get("email_address")]
+
     if account_id:
         filters.append(("account_id", "eq", account_id))
     if category:
@@ -138,42 +150,27 @@ async def list_emails(
         filters.append(("is_deleted", "eq", "false"))
         filters.append(("is_archived", "eq", "false"))
 
-    if filter == "unread":
-        filters.append(("is_read", "eq", "false"))
-    elif filter == "starred":
-        filters.append(("is_starred", "eq", "true"))
-    elif filter == "high_risk":
-        filters.append(("risk_level", "eq", "high"))
-    elif filter == "snoozed":
-        filters.append(("is_snoozed", "eq", "true"))
-    elif filter == "sent":
-        accounts = await select(
-            "linked_accounts",
-            "email_address,id",
-            filters=[("user_id", "eq", user_id)],
-            user_token=token,
-        )
-        if account_id:
-            accounts = [acc for acc in accounts if acc.get("id") == account_id]
-        account_emails = [acc.get("email_address") for acc in accounts if acc.get("email_address")]
-        if not account_emails:
+    if filter == "sent":
+        # Sent: only emails whose sender is one of the user's own connected addresses.
+        if not my_emails:
             return {"emails": []}
-        quoted = ",".join(f'"{email}"' for email in account_emails)
+        quoted = ",".join(f'"{e}"' for e in my_emails)
         filters.append(("sender_email", "in", f"({quoted})"))
-    elif not filter:
-        # "All" view: exclude emails the user sent themselves (those belong in Sent folder only)
-        accounts = await select(
-            "linked_accounts",
-            "email_address,id",
-            filters=[("user_id", "eq", user_id)],
-            user_token=token,
-        )
-        if account_id:
-            accounts = [acc for acc in accounts if acc.get("id") == account_id]
-        account_emails = [acc.get("email_address") for acc in accounts if acc.get("email_address")]
-        if account_emails:
-            quoted = ",".join(f'"{email}"' for email in account_emails)
+    else:
+        # Every other filter (All, Unread, Starred, Snoozed, High-Risk, Trash):
+        # exclude emails sent FROM the user's own addresses so they stay in Sent only.
+        if my_emails:
+            quoted = ",".join(f'"{e}"' for e in my_emails)
             filters.append(("sender_email", "not.in", f"({quoted})"))
+
+        if filter == "unread":
+            filters.append(("is_read", "eq", "false"))
+        elif filter == "starred":
+            filters.append(("is_starred", "eq", "true"))
+        elif filter == "high_risk":
+            filters.append(("risk_level", "eq", "high"))
+        elif filter == "snoozed":
+            filters.append(("is_snoozed", "eq", "true"))
 
     if label_id:
         label_rows = await select(
