@@ -91,6 +91,18 @@ const sanitizeEmailHtml = (html: string) => {
     anchor.setAttribute("target", "_blank")
     anchor.setAttribute("rel", "noopener noreferrer")
   })
+
+  const stripLayoutConstraints = (element: Element | null) => {
+    if (!(element instanceof HTMLElement)) return
+    element.style.width = "100%"
+    element.style.maxWidth = "none"
+    element.style.marginLeft = "0"
+    element.style.marginRight = "0"
+  }
+
+  stripLayoutConstraints(doc.body.firstElementChild)
+  stripLayoutConstraints(doc.body.firstElementChild?.firstElementChild ?? null)
+
   return doc.body.innerHTML
 }
 
@@ -121,7 +133,7 @@ export function EmailViewer({ email }: { email: any }) {
 
   return (
     <div className="email-html w-full px-4 py-4 lg:px-6">
-      <div className="w-full min-w-0" dangerouslySetInnerHTML={{ __html: html }} />
+      <div className="w-full min-w-0 max-w-none" dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   )
 }
