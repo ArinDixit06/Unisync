@@ -1,23 +1,34 @@
-import { Bell, Menu } from "lucide-react"
+import { useState } from "react"
+import { Bell, Menu, Settings2 } from "lucide-react"
 import { SearchBar } from "./SearchBar"
+import { SettingsPanel } from "../settings"
 
 export function Topbar({
-  onCompose,
   onSync,
   onConnectGmail,
-  showConnectGmail,
+  onDisconnectAccount,
+  onLogout,
+  linkedAccounts = [],
+  activeAccount = null,
   unreadCount,
   syncDisabled,
   syncLoading,
   syncAnnouncement,
   onToggleSidebar,
   searchValue = "",
-  onSearchChange
+  onSearchChange,
+  sortOrder = "recent",
+  onSortOrderChange = () => {},
+  showPreviewText = true,
+  onShowPreviewTextChange = () => {},
+  lastSyncedAt
 }: {
-  onCompose: () => void
   onSync: () => void
   onConnectGmail?: () => void
-  showConnectGmail?: boolean
+  onDisconnectAccount?: (accountId: string) => void
+  onLogout?: () => void
+  linkedAccounts?: Array<{ id: string; name: string; email: string }>
+  activeAccount?: { id: string; name: string; email: string } | null
   unreadCount?: number
   syncDisabled?: boolean
   syncLoading?: boolean
@@ -25,7 +36,14 @@ export function Topbar({
   onToggleSidebar?: () => void
   searchValue?: string
   onSearchChange?: (value: string) => void
+  sortOrder?: "recent" | "oldest"
+  onSortOrderChange?: (value: "recent" | "oldest") => void
+  showPreviewText?: boolean
+  onShowPreviewTextChange?: (value: boolean) => void
+  lastSyncedAt?: number | null
 }) {
+  const [settingsOpen, setSettingsOpen] = useState(false)
+
   return (
     <header className="col-span-full flex items-center justify-between gap-4 border-b border-gray-200/70 bg-white px-4 py-3 shadow-sm lg:col-start-2 lg:col-end-4">
       <div className="sr-only" aria-live="polite" aria-atomic="true">
@@ -62,15 +80,6 @@ export function Topbar({
         >
           <Bell size={16} />
         </button>
-        {showConnectGmail ? (
-          <button
-            type="button"
-            onClick={onConnectGmail}
-            className="hidden rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-700 lg:inline-flex"
-          >
-            Connect Gmail
-          </button>
-        ) : null}
         <button
           type="button"
           onClick={onSync}
@@ -82,12 +91,28 @@ export function Topbar({
         </button>
         <button
           type="button"
-          onClick={onCompose}
-          className="hidden rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white shadow-soft transition hover:bg-blue-700 lg:inline-flex"
+          onClick={() => setSettingsOpen(true)}
+          className="inline-flex rounded-full border-0 p-2 text-gray-500 transition-transform duration-300 hover:rotate-90 hover:text-gray-900"
+          aria-label="Settings"
         >
-          Compose
+          <Settings2 size={18} />
         </button>
       </div>
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        currentAccount={activeAccount}
+        linkedAccounts={linkedAccounts}
+        onDisconnectAccount={onDisconnectAccount}
+        onConnectGmail={onConnectGmail}
+        onSyncNow={onSync}
+        onLogout={onLogout}
+        sortOrder={sortOrder}
+        onSortOrderChange={onSortOrderChange}
+        showPreviewText={showPreviewText}
+        onShowPreviewTextChange={onShowPreviewTextChange}
+        lastSyncedAt={lastSyncedAt}
+      />
     </header>
   )
 }

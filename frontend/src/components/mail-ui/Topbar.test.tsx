@@ -1,12 +1,15 @@
-import { render, screen } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { cleanup, render, screen } from "@testing-library/react"
+import { afterEach, describe, expect, it } from "vitest"
 import { Topbar } from "./Topbar"
 
 describe("Topbar", () => {
+  afterEach(() => {
+    cleanup()
+  })
+
   it("announces sync status in a live region", () => {
     render(
       <Topbar
-        onCompose={() => {}}
         onSync={() => {}}
         syncAnnouncement="Syncing mailbox"
       />
@@ -15,16 +18,17 @@ describe("Topbar", () => {
     expect(screen.getByText("Syncing mailbox")).toBeInTheDocument()
   })
 
-  it("shows the Connect Gmail button when requested", () => {
+  it("shows the settings button", () => {
     render(
       <Topbar
-        onCompose={() => {}}
         onSync={() => {}}
-        onConnectGmail={() => {}}
-        showConnectGmail
+        sortOrder="recent"
+        onSortOrderChange={() => {}}
+        showPreviewText
+        onShowPreviewTextChange={() => {}}
       />
     )
 
-    expect(screen.getByRole("button", { name: "Connect Gmail" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument()
   })
 })

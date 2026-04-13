@@ -52,9 +52,6 @@ export function AccountSwitcher({
               <span className="text-xs text-gray-400">{item.email}</span>
             </button>
           ))}
-          <div className="mt-2 rounded-xl border border-dashed border-gray-200 px-3 py-2 text-xs text-gray-400">
-            Shortcut: Alt + A
-          </div>
         </div>
       ) : null}
     </div>

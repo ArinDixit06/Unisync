@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react"
-import { Folder, Mail, Star, Clock3, AlertTriangle, ChevronRight, Unplug } from "lucide-react"
+import { Folder, Mail, Star, Clock3, AlertTriangle, ChevronRight } from "lucide-react"
 import { ComposeButton } from "./ComposeButton"
 import { SyncToggle } from "./SyncToggle"
 import { AccountSwitcher, AccountOption } from "./AccountSwitcher"
 import { LabelList, LabelItem } from "./LabelList"
 import { EmailCategory } from "../../stores/uiStore"
-import { accountColorFor } from "../../lib/accountColors"
 
 const categories: Array<{ id: EmailCategory; label: string }> = [
   { id: "all", label: "All mail" },
@@ -34,8 +33,6 @@ export interface SidebarProps {
   onCompose: () => void
   onSync: () => void
   onAccountSelect: (accountId: string) => void
-  onDisconnectAccount?: (accountId: string) => void
-  onLogout?: () => void
 }
 
 export function Sidebar({
@@ -55,13 +52,10 @@ export function Sidebar({
   onCategoryChange,
   onCompose,
   onSync,
-  onAccountSelect,
-  onDisconnectAccount,
-  onLogout
+  onAccountSelect
 }: SidebarProps) {
   const [sections, setSections] = useState({ folders: true, categories: true, labels: true })
   const [accountOpen, setAccountOpen] = useState(false)
-  const linkedAccountItems = accounts.filter((item) => item.id !== "all")
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -112,38 +106,6 @@ export function Sidebar({
             setAccountOpen(false)
           }}
         />
-      ) : null}
-
-      {!collapsed && linkedAccountItems.length ? (
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wide text-gray-400">Linked Accounts</div>
-          <div className="mt-2 space-y-2">
-            {linkedAccountItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600"
-              >
-                <div className="min-w-0 flex items-center gap-2">
-                  <span className={`h-2.5 w-2.5 rounded-full ${accountColorFor(item.email).dot}`} />
-                  <span className="truncate">{item.email}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] capitalize text-gray-400">{item.provider || "mail"}</span>
-                  {onDisconnectAccount ? (
-                    <button
-                      type="button"
-                      onClick={() => onDisconnectAccount(item.id)}
-                      className="rounded-full border border-gray-200 p-1 text-gray-400 transition hover:border-rose-300 hover:text-rose-600"
-                      aria-label={`Disconnect ${item.email}`}
-                    >
-                      <Unplug size={12} />
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       ) : null}
 
       <div className="flex flex-col gap-3">
@@ -258,20 +220,6 @@ export function Sidebar({
         ) : null}
       </nav>
 
-      {!collapsed ? (
-        <div className="rounded-2xl border border-gray-200 bg-white/70 p-3 text-xs text-gray-500">
-          <div>Tip: Press <span className="font-semibold">Alt + A</span> to switch accounts.</div>
-          {onLogout ? (
-            <button
-              type="button"
-              onClick={onLogout}
-              className="mt-3 inline-flex w-full items-center justify-center rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:border-blue-300 hover:text-blue-700"
-            >
-              Log out
-            </button>
-          ) : null}
-        </div>
-      ) : null}
     </aside>
   )
 }

@@ -10,6 +10,8 @@ export function MailList({
   emails,
   selectedEmailId,
   activeFilter,
+  sortOrder = "recent",
+  showPreviewText = true,
   onFilterChange,
   onSelect,
   onArchive,
@@ -24,6 +26,8 @@ export function MailList({
   emails: MailListItemData[]
   selectedEmailId: string | null
   activeFilter: "all" | "unread" | "starred" | "high_risk" | "snoozed" | "sent" | "drafts" | "trash"
+  sortOrder?: "recent" | "oldest"
+  showPreviewText?: boolean
   onFilterChange: (
     filter: "all" | "unread" | "starred" | "high_risk" | "snoozed" | "sent" | "drafts" | "trash"
   ) => void
@@ -39,17 +43,26 @@ export function MailList({
 }) {
   const listRef = useRef<HTMLDivElement | null>(null)
   const [multiSelect, setMultiSelect] = useState<Record<string, boolean>>({})
+  const sortedEmails = useMemo(() => {
+    const next = [...emails]
+    next.sort((left, right) => {
+      const leftTime = new Date(left.received_at).getTime()
+      const rightTime = new Date(right.received_at).getTime()
+      return sortOrder === "oldest" ? leftTime - rightTime : rightTime - leftTime
+    })
+    return next
+  }, [emails, sortOrder])
 
   const rowVirtualizer = useVirtualizer({
-    count: emails.length,
+    count: sortedEmails.length,
     getScrollElement: () => listRef.current,
     estimateSize: () => 76,
     overscan: 8
   })
 
   const selectedIndex = useMemo(
-    () => (selectedEmailId ? emails.findIndex((email) => email.id === selectedEmailId) : -1),
-    [emails, selectedEmailId]
+    () => (selectedEmailId ? sortedEmails.findIndex((email) => email.id === selectedEmailId) : -1),
+    [selectedEmailId, sortedEmails]
   )
 
   useEffect(() => {
@@ -58,29 +71,29 @@ export function MailList({
     if (scrollHeight <= clientHeight + 24) {
       onLoadMore()
     }
-  }, [emails.length, hasMore, loadingMore, onLoadMore])
+  }, [sortedEmails.length, hasMore, loadingMore, onLoadMore])
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
     if (event.key === "j" || event.key === "ArrowDown") {
       event.preventDefault()
-      const nextIndex = Math.min(emails.length - 1, Math.max(0, selectedIndex + 1))
-      if (emails[nextIndex]) {
-        onSelect(emails[nextIndex])
+      const nextIndex = Math.min(sortedEmails.length - 1, Math.max(0, selectedIndex + 1))
+      if (sortedEmails[nextIndex]) {
+        onSelect(sortedEmails[nextIndex])
         rowVirtualizer.scrollToIndex(nextIndex, { align: "center" })
       }
     }
     if (event.key === "k" || event.key === "ArrowUp") {
       event.preventDefault()
       const nextIndex = Math.max(0, selectedIndex - 1)
-      if (emails[nextIndex]) {
-        onSelect(emails[nextIndex])
+      if (sortedEmails[nextIndex]) {
+        onSelect(sortedEmails[nextIndex])
         rowVirtualizer.scrollToIndex(nextIndex, { align: "center" })
       }
     }
     if (event.key === "Enter" && selectedIndex >= 0) {
       event.preventDefault()
-      onSelect(emails[selectedIndex])
+      onSelect(sortedEmails[selectedIndex])
     }
   }
 
@@ -100,7 +113,7 @@ export function MailList({
       <div className="flex items-center justify-between border-b border-gray-200/70 bg-white px-4 py-3">
         <div>
           <p className="text-sm font-semibold text-gray-900">Mail</p>
-          <p className="text-xs text-gray-500">Sorted by most recent</p>
+          <p className="text-xs text-gray-500">{sortOrder === "oldest" ? "Sorted by oldest first" : "Sorted by most recent"}</p>
         </div>
         <button
           type="button"
@@ -140,7 +153,7 @@ export function MailList({
           }
         }}
       >
-        {emails.length === 0 ? (
+        {sortedEmails.length === 0 ? (
           <div className="h-full px-4 py-6">
             {emptyState ?? (
               <EmptyState
@@ -161,7 +174,7 @@ export function MailList({
               }}
             >
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                const email = emails[virtualRow.index]
+                const email = sortedEmails[virtualRow.index]
                 return (
                   <div
                     key={email.id}
@@ -177,6 +190,7 @@ export function MailList({
                       sender={email.sender_name || email.sender_email}
                       subject={email.subject || "(No subject)"}
                       preview={email.preview_snippet || ""}
+                      showPreviewText={showPreviewText}
                       time={formatDistanceToNow(new Date(email.received_at), { addSuffix: true })}
                       priority={email.priority_level || email.risk_level}
                       sourceLabel={email.account_email || null}

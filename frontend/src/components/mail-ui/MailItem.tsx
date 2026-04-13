@@ -18,7 +18,8 @@ export function MailItem({
   onArchive,
   onDelete,
   onToggleRead,
-  onToggleStar
+  onToggleStar,
+  showPreviewText = true
 }: {
   sender: string
   subject: string
@@ -37,6 +38,7 @@ export function MailItem({
   onDelete?: () => void
   onToggleRead?: () => void
   onToggleStar?: () => void
+  showPreviewText?: boolean
 }) {
   const isStarred = Boolean(starred)
   const accountColors = accountColorFor(accountEmail)
@@ -83,7 +85,7 @@ export function MailItem({
       </div>
       <div className="min-w-0 flex items-center gap-2">
         <span className="truncate text-sm font-medium text-gray-800">{subject}</span>
-        {preview ? <span className="min-w-0 truncate text-sm text-gray-500">- {preview}</span> : null}
+        {showPreviewText && preview ? <span className="min-w-0 truncate text-sm text-gray-500">- {preview}</span> : null}
       </div>
       <div className="flex shrink-0 items-center gap-2 justify-self-end">
         {sourceLabel ? (

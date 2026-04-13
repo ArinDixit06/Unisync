@@ -14,6 +14,20 @@ export function Dashboard() {
   const [composeInitialData, setComposeInitialData] = useState<any | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [mailSearchQuery, setMailSearchQuery] = useState("")
+  const [sortOrder, setSortOrder] = useState<"recent" | "oldest">(() => {
+    if (typeof window === "undefined") return "recent"
+    return window.localStorage.getItem("email_sort_order") === "oldest" ? "oldest" : "recent"
+  })
+  const [showPreviewText, setShowPreviewText] = useState(() => {
+    if (typeof window === "undefined") return true
+    const stored = window.localStorage.getItem("show_preview")
+    return stored == null ? true : stored === "true"
+  })
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null
+    const stored = window.localStorage.getItem("last_synced_at")
+    return stored ? Number(stored) || null : null
+  })
   const [syncing, setSyncing] = useState(false)
   const queryClient = useQueryClient()
   const syncHandledRef = useRef(false)
@@ -29,7 +43,6 @@ export function Dashboard() {
     enabled: Boolean(accessToken)
   })
   const linkedAccounts = accountsData?.accounts || []
-  const gmailAccounts = linkedAccounts.filter((account: any) => account.provider === "gmail")
 
   const { data: labelsData } = useQuery({
     queryKey: ["labels"],
@@ -59,6 +72,20 @@ export function Dashboard() {
     if (!activeAccountId || linkedAccounts.some((account: any) => account.id === activeAccountId)) return
     setState({ activeAccountId: null, selectedEmailId: null })
   }, [activeAccountId, linkedAccounts, setState])
+
+  useEffect(() => {
+    window.localStorage.setItem("email_sort_order", sortOrder)
+  }, [sortOrder])
+
+  useEffect(() => {
+    window.localStorage.setItem("show_preview", String(showPreviewText))
+  }, [showPreviewText])
+
+  useEffect(() => {
+    if (lastSyncedAt) {
+      window.localStorage.setItem("last_synced_at", String(lastSyncedAt))
+    }
+  }, [lastSyncedAt])
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -99,6 +126,7 @@ export function Dashboard() {
       .then(() => {
         invalidateMailQueries()
         queryClient.invalidateQueries({ queryKey: ["accounts"] })
+        setLastSyncedAt(Date.now())
       })
       .finally(() => {
         setSyncing(false)
@@ -311,6 +339,7 @@ export function Dashboard() {
       }
       invalidateMailQueries()
       queryClient.invalidateQueries({ queryKey: ["emails-count"] })
+      setLastSyncedAt(Date.now())
     } finally {
       setSyncing(false)
     }
@@ -350,6 +379,12 @@ export function Dashboard() {
 
   const activeAccount =
     accountOptions.find((account) => account.id === (activeAccountId || "all")) || accountOptions[0]
+  const currentSettingsAccount =
+    linkedAccounts.length === 0
+      ? null
+      : activeAccount.id === "all"
+      ? accountOptions.find((account) => account.id !== "all") || null
+      : activeAccount
   const syncAnnouncement = syncing ? "Syncing mailbox" : "Mail sync ready"
   const detailOpen = Boolean(selectedEmailId)
   const mailListEmptyState = normalizedMailSearchQuery ? (
@@ -439,20 +474,32 @@ export function Dashboard() {
           setState({ activeAccountId: accountId === "all" ? null : accountId, selectedEmailId: null })
           setSidebarCollapsed(false)
         },
-        onDisconnectAccount: (accountId) => {
-          void handleDisconnectAccount(accountId)
-        },
-        onLogout: handleLogout
       }}
       detailOpen={detailOpen}
       sidebarOpen={sidebarOpen}
       onSidebarToggle={() => setState({ sidebarOpen: !sidebarOpen })}
       topbar={
         <TopBar
-          onCompose={() => setComposeOpen(true)}
           onSync={handleSync}
           onConnectGmail={handleConnectGmail}
-          showConnectGmail={!gmailAccounts.length}
+          onDisconnectAccount={(accountId) => {
+            void handleDisconnectAccount(accountId)
+          }}
+          onLogout={handleLogout}
+          linkedAccounts={linkedAccounts.map((account: any) => ({
+            id: account.id,
+            name: account.display_name || account.email_address || account.provider?.toUpperCase?.() || "Account",
+            email: account.email_address || "Connected"
+          }))}
+          activeAccount={
+            currentSettingsAccount
+              ? {
+                  id: currentSettingsAccount.id,
+                  name: currentSettingsAccount.name,
+                  email: currentSettingsAccount.email
+                }
+              : null
+          }
           syncDisabled={!linkedAccounts.length || syncing}
           syncLoading={syncing}
           syncAnnouncement={syncAnnouncement}
@@ -460,6 +507,11 @@ export function Dashboard() {
           unreadCount={activeFilter === "drafts" ? 0 : emails.filter((email: any) => !email.is_read).length}
           searchValue={mailSearchQuery}
           onSearchChange={setMailSearchQuery}
+          sortOrder={sortOrder}
+          onSortOrderChange={setSortOrder}
+          showPreviewText={showPreviewText}
+          onShowPreviewTextChange={setShowPreviewText}
+          lastSyncedAt={lastSyncedAt}
         />
       }
       list={
@@ -472,6 +524,8 @@ export function Dashboard() {
             emails={visibleEmails}
             selectedEmailId={selectedEmailId}
             activeFilter={activeFilter}
+            sortOrder={sortOrder}
+            showPreviewText={showPreviewText}
             onFilterChange={(filter) => setState({ activeFilter: filter })}
             onSelect={handleSelect}
             onArchive={handleArchive}

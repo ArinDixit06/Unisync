@@ -66,10 +66,13 @@ export const Default: Story = {
       onSidebarToggle={() => {}}
       topbar={
         <TopBar
-          onCompose={() => {}}
           onSync={() => {}}
           syncAnnouncement="Mail sync ready"
           unreadCount={12}
+          sortOrder="recent"
+          onSortOrderChange={() => {}}
+          showPreviewText
+          onShowPreviewTextChange={() => {}}
         />
       }
       list={

@@ -27,7 +27,8 @@ export function MailListItem({
   onToggleRead,
   onToggleStar,
   onSelectToggle,
-  multiSelected
+  multiSelected,
+  showPreviewText = true
 }: {
   email: MailListItemData
   selected: boolean
@@ -38,6 +39,7 @@ export function MailListItem({
   onToggleStar?: () => void
   onSelectToggle?: () => void
   multiSelected?: boolean
+  showPreviewText?: boolean
 }) {
   const timeAgo = formatDistanceToNow(new Date(email.received_at), { addSuffix: true })
   const initials = (email.sender_name || email.sender_email || "?")
@@ -81,7 +83,7 @@ export function MailListItem({
         <p className={`truncate text-sm ${email.is_read ? "font-medium" : "font-semibold"}`}>
           {email.subject || "(No subject)"}
         </p>
-        <p className="truncate text-xs text-gray-500">{email.preview_snippet}</p>
+        {showPreviewText ? <p className="truncate text-xs text-gray-500">{email.preview_snippet}</p> : null}
         <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
           {email.provider ? <span className="rounded-full border px-2 py-0.5">{email.provider}</span> : null}
           {email.processing_status && email.processing_status !== "done" ? (
