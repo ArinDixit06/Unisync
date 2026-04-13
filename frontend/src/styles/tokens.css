@@ -45,38 +45,32 @@
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
 
-  --color-bg-base: #f8fafc;
-  --color-bg-surface: #ffffff;
-  --color-bg-elevated: #ffffff;
-  --color-bg-subtle: #f1f5f9;
-  --bg: var(--color-bg-base);
-
-  --color-border-default: #e5e7eb;
-  --color-border-strong: #d1d5db;
-
-  --color-text-primary: #111827;
-  --color-text-secondary: #6b7280;
-  --color-text-tertiary: #9ca3af;
-  --color-text-inverse: #f8fafc;
-
-  --color-accent: #2563eb;
-  --color-accent-subtle: #dbeafe;
-  --color-accent-hover: #1d4ed8;
-  --primary: var(--color-accent);
-
+  --bg: var(--bg-app);
+  --primary: var(--accent-primary);
+  --color-bg-base: var(--bg-app);
+  --color-bg-surface: var(--bg-main);
+  --color-bg-elevated: var(--bg-surface);
+  --color-bg-subtle: var(--bg-hover);
+  --color-border-default: var(--border-color);
+  --color-border-strong: color-mix(in srgb, var(--border-color) 70%, var(--text-primary) 30%);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-muted);
+  --color-text-inverse: #ffffff;
+  --color-accent: var(--accent-primary);
+  --color-accent-subtle: var(--accent-bg);
+  --color-accent-hover: color-mix(in srgb, var(--accent-primary) 85%, black 15%);
   --color-success: #22c55e;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
   --color-info: #3b82f6;
-
   --color-risk-low: var(--color-success);
   --color-risk-medium: var(--color-warning);
   --color-risk-high: var(--color-danger);
   --color-priority-high: #dc2626;
   --color-priority-medium: #f59e0b;
   --color-priority-low: #0ea5e9;
-
-  --shadow-subtle: 0 6px 18px rgba(15, 23, 42, 0.08);
-  --shadow-medium: 0 10px 28px rgba(15, 23, 42, 0.12);
-  --shadow-high: 0 18px 40px rgba(15, 23, 42, 0.18);
+  --shadow-subtle: 0 6px 18px color-mix(in srgb, var(--text-primary) 8%, transparent);
+  --shadow-medium: 0 10px 28px color-mix(in srgb, var(--text-primary) 12%, transparent);
+  --shadow-high: 0 18px 40px color-mix(in srgb, var(--text-primary) 18%, transparent);
 }

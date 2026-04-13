@@ -109,29 +109,31 @@ export function MailList({
   ]
 
   return (
-    <section className="flex h-full w-full min-w-0 flex-col">
-      <div className="flex items-center justify-between border-b border-gray-200/70 bg-white px-4 py-3">
+    <section className="flex h-full w-full min-w-0 flex-col bg-[var(--bg-main)]">
+      <div className="flex items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-main)] px-4 py-3">
         <div>
-          <p className="text-sm font-semibold text-gray-900">Mail</p>
-          <p className="text-xs text-gray-500">{sortOrder === "oldest" ? "Sorted by oldest first" : "Sorted by most recent"}</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">Inbox</p>
+          <p className="text-xs text-[var(--text-secondary)]">
+            {sortOrder === "oldest" ? "Sorted by oldest first" : "Sorted by most recent"}
+          </p>
         </div>
         <button
           type="button"
-          className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--border-color)] bg-[var(--bg-hover)] px-3 py-1 text-xs text-[var(--text-secondary)]"
         >
           <Filter size={12} /> Filters
         </button>
       </div>
-      <div className="flex flex-wrap items-center gap-2 border-b border-gray-200/70 bg-white px-4 py-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-color)] bg-[var(--bg-main)] px-4 py-2">
         {filterOptions.map((filter) => (
           <button
             key={filter.id}
             type="button"
             onClick={() => onFilterChange(filter.id)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+            className={`rounded-full border-b-2 px-3 py-1 text-xs font-semibold transition ${
               activeFilter === filter.id
-                ? "bg-blue-600 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "border-[var(--accent-primary)] text-[var(--accent-primary)]"
+                : "border-transparent text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
             }`}
             aria-pressed={activeFilter === filter.id}
           >
@@ -141,7 +143,7 @@ export function MailList({
       </div>
       <div
         ref={listRef}
-        className="relative flex-1 w-full min-w-0 overflow-y-auto pb-8"
+        className="relative flex-1 w-full min-w-0 overflow-y-auto pb-8 bg-[var(--bg-main)]"
         role="list"
         tabIndex={0}
         onKeyDown={handleKeyDown}
@@ -190,6 +192,7 @@ export function MailList({
                       sender={email.sender_name || email.sender_email}
                       subject={email.subject || "(No subject)"}
                       preview={email.preview_snippet || ""}
+                      category={email.category || null}
                       showPreviewText={showPreviewText}
                       time={formatDistanceToNow(new Date(email.received_at), { addSuffix: true })}
                       priority={email.priority_level || email.risk_level}
@@ -213,7 +216,7 @@ export function MailList({
               })}
             </div>
             {loadingMore ? (
-              <div className="px-4 py-3 text-center text-xs text-gray-400">Loading more mail...</div>
+            <div className="px-4 py-3 text-center text-xs text-[var(--text-muted)]">Loading more mail...</div>
             ) : null}
           </>
         )}

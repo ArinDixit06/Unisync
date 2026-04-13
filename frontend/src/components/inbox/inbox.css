@@ -87,9 +87,9 @@
   border: 1px solid var(--color-border-default);
 }
 
-.risk-banner.high { background: rgba(220, 38, 38, 0.12); border-color: var(--color-danger); }
-.risk-banner.medium { background: rgba(245, 158, 11, 0.12); border-color: var(--color-warning); }
-.risk-banner.low { background: rgba(22, 163, 74, 0.12); border-color: var(--color-success); }
+.risk-banner.high { background: color-mix(in srgb, var(--tag-highrisk-bg) 30%, transparent); border-color: var(--tag-highrisk-text); }
+.risk-banner.medium { background: color-mix(in srgb, var(--tag-promotional-bg) 30%, transparent); border-color: var(--tag-promotional-text); }
+.risk-banner.low { background: color-mix(in srgb, var(--tag-transactional-bg) 30%, transparent); border-color: var(--tag-transactional-text); }
 
 .suggested-event {
   border: 1px solid var(--color-border-default);

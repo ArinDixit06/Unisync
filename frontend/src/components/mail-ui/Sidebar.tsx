@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react"
-import { Folder, Mail, Star, Clock3, AlertTriangle, ChevronRight } from "lucide-react"
+import { Folder, Mail, Star, Clock3, AlertTriangle, ChevronRight, Moon, Sun } from "lucide-react"
 import { ComposeButton } from "./ComposeButton"
 import { SyncToggle } from "./SyncToggle"
 import { AccountSwitcher, AccountOption } from "./AccountSwitcher"
 import { LabelList, LabelItem } from "./LabelList"
 import { EmailCategory } from "../../stores/uiStore"
+import { useTheme } from "../../contexts/ThemeContext"
 
 const categories: Array<{ id: EmailCategory; label: string }> = [
   { id: "all", label: "All mail" },
@@ -56,6 +57,7 @@ export function Sidebar({
 }: SidebarProps) {
   const [sections, setSections] = useState({ folders: true, categories: true, labels: true })
   const [accountOpen, setAccountOpen] = useState(false)
+  const { theme, toggleTheme } = useTheme()
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -73,14 +75,14 @@ export function Sidebar({
 
   return (
     <aside
-      className={`flex h-full flex-col gap-6 border-r border-gray-200/70 bg-gray-100 px-4 py-6 shadow-sm ${
+      className={`flex h-full flex-col gap-6 border-r border-[var(--border-color)] bg-[var(--bg-sidebar)] px-4 py-6 shadow-sm ${
         collapsed ? "w-[84px]" : "w-[260px]"
       } transition-all duration-200 ease-out`}
       aria-label="Mailbox sidebar"
     >
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-lg font-semibold text-gray-900">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-sm font-bold text-white">
+        <div className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--compose-btn-bg)] text-sm font-bold text-[var(--compose-btn-text)]">
             U
           </span>
           {!collapsed ? <span>UniSync</span> : null}
@@ -88,7 +90,7 @@ export function Sidebar({
         <button
           type="button"
           onClick={onCollapseToggle}
-          className="hidden rounded-full border border-gray-200 p-2 text-gray-500 hover:border-blue-300 hover:text-blue-600 lg:inline-flex"
+          className="hidden rounded-full border border-[var(--border-color)] p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] lg:inline-flex"
           aria-label="Collapse sidebar"
         >
           <ChevronRight size={16} className={collapsed ? "rotate-180" : ""} />
@@ -117,7 +119,7 @@ export function Sidebar({
         <div>
           <button
             type="button"
-            className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-400"
+            className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
             onClick={() => toggleSection("folders")}
             aria-expanded={sections.folders}
           >
@@ -146,8 +148,8 @@ export function Sidebar({
                     onClick={() => onFilterChange(item.id as SidebarProps["activeFilter"])}
                     className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm ${
                       active
-                        ? "bg-blue-50 text-blue-800"
-                        : "text-gray-600 hover:bg-gray-100"
+                        ? "bg-[var(--bg-selected)] text-[var(--text-primary)]"
+                        : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
                     }`}
                   >
                     <Icon size={16} />
@@ -155,7 +157,7 @@ export function Sidebar({
                       <span className="flex flex-1 items-center justify-between gap-2">
                         <span>{item.label}</span>
                         {showStarCount ? (
-                          <span className="rounded-full bg-white/90 px-2 py-0.5 text-[11px] font-semibold text-gray-500 shadow-sm">
+                          <span className="rounded-full bg-[var(--accent-primary)] px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm">
                             {starredCount}
                           </span>
                         ) : null}
@@ -172,7 +174,7 @@ export function Sidebar({
           <div>
             <button
               type="button"
-              className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-400"
+              className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
               onClick={() => toggleSection("categories")}
               aria-expanded={sections.categories}
             >
@@ -188,8 +190,8 @@ export function Sidebar({
                     onClick={() => onCategoryChange(category.id)}
                     className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm ${
                       activeCategory === category.id
-                        ? "bg-gray-100 text-gray-900"
-                        : "text-gray-600 hover:bg-gray-100"
+                        ? "bg-[var(--bg-selected)] text-[var(--text-primary)]"
+                        : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
                     }`}
                   >
                     {category.label}
@@ -204,7 +206,7 @@ export function Sidebar({
           <div>
             <button
               type="button"
-              className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-400"
+              className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]"
               onClick={() => toggleSection("labels")}
               aria-expanded={sections.labels}
             >
@@ -219,6 +221,17 @@ export function Sidebar({
           </div>
         ) : null}
       </nav>
+      <div className="mt-auto flex items-center justify-between gap-3 border-t border-[var(--border-color)] pt-4">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-full border border-[var(--border-color)] bg-[var(--bg-hover)] px-3 py-2 text-sm font-semibold text-[var(--text-secondary)]"
+          aria-label="Toggle theme"
+        >
+          {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+          {!collapsed ? (theme === "dark" ? "Light mode" : "Dark mode") : null}
+        </button>
+      </div>
 
     </aside>
   )

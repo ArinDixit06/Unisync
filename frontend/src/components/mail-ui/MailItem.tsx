@@ -1,5 +1,4 @@
 import { Archive, MailOpen, Star, Trash2 } from "lucide-react"
-import { accountColorFor } from "../../lib/accountColors"
 
 export function MailItem({
   sender,
@@ -7,6 +6,7 @@ export function MailItem({
   preview,
   time,
   priority,
+  category,
   sourceLabel,
   accountEmail,
   unread,
@@ -26,6 +26,7 @@ export function MailItem({
   preview: string
   time: string
   priority?: "high" | "medium" | "low" | string | null
+  category?: string | null
   sourceLabel?: string | null
   accountEmail?: string | null
   unread?: boolean
@@ -41,7 +42,6 @@ export function MailItem({
   showPreviewText?: boolean
 }) {
   const isStarred = Boolean(starred)
-  const accountColors = accountColorFor(accountEmail)
   const initials = sender
     .split(" ")
     .map((part) => part[0])
@@ -51,20 +51,31 @@ export function MailItem({
 
   const priorityStyles =
     priority === "high"
-      ? "bg-rose-50 text-rose-700 border-rose-200"
+      ? "bg-[var(--tag-highrisk-bg)] text-[var(--tag-highrisk-text)] border-[var(--tag-highrisk-text)]"
       : priority === "medium"
-      ? "bg-amber-50 text-amber-700 border-amber-200"
+      ? "bg-[var(--tag-promotional-bg)] text-[var(--tag-promotional-text)] border-[var(--tag-promotional-text)]"
       : priority === "low"
-      ? "bg-sky-50 text-sky-700 border-sky-200"
-      : "bg-gray-50 text-gray-600 border-gray-200"
+      ? "bg-[var(--tag-transactional-bg)] text-[var(--tag-transactional-text)] border-[var(--tag-transactional-text)]"
+      : "bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-color)]"
+
+  const categoryLabel =
+    category === "primary"
+      ? { label: "Transactional", className: "bg-[var(--tag-transactional-bg)] text-[var(--tag-transactional-text)]" }
+      : category === "updates" || category === "forums" || category === "social"
+      ? { label: "Newsletter", className: "bg-[var(--tag-newsletter-bg)] text-[var(--tag-newsletter-text)]" }
+      : category === "promotions"
+      ? { label: "Promotional", className: "bg-[var(--tag-promotional-bg)] text-[var(--tag-promotional-text)]" }
+      : priority === "high"
+      ? { label: "High Risk", className: "bg-[var(--tag-highrisk-bg)] text-[var(--tag-highrisk-text)]" }
+      : null
 
   return (
     <div
       role="button"
       tabIndex={0}
       onClick={onClick}
-      className={`group grid w-full min-w-0 grid-cols-[auto_auto_minmax(140px,220px)_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-gray-200/80 px-4 py-3 transition duration-150 hover:bg-gray-50 ${
-        selected ? "bg-blue-50/80" : "bg-white"
+      className={`group grid w-full min-w-0 grid-cols-[auto_auto_minmax(140px,220px)_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-[var(--border-color)] px-4 py-3 transition duration-150 hover:bg-[var(--bg-hover)] ${
+        selected ? "bg-[var(--bg-selected)]" : "bg-[var(--bg-main)]"
       }`}
     >
       <input
@@ -74,24 +85,34 @@ export function MailItem({
           event.stopPropagation()
           onToggleSelect?.()
         }}
-        className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        className="mt-1 h-4 w-4 rounded border-[var(--border-color)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
         aria-label="Select email"
       />
-      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-700">
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--avatar-bg)] text-xs font-semibold text-[var(--avatar-text)]">
         {initials}
       </div>
       <div className="min-w-0">
-        <span className="block truncate text-sm font-semibold text-gray-900">{sender}</span>
+        <span className="flex items-center gap-2 truncate text-sm font-semibold text-[var(--text-primary)]">
+          {!unread ? null : <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--dot-unread)]" aria-hidden="true" />}
+          <span className="truncate">{sender}</span>
+        </span>
       </div>
       <div className="min-w-0 flex items-center gap-2">
-        <span className="truncate text-sm font-medium text-gray-800">{subject}</span>
-        {showPreviewText && preview ? <span className="min-w-0 truncate text-sm text-gray-500">- {preview}</span> : null}
+        <span className="truncate text-sm font-medium text-[var(--text-primary)]">{subject}</span>
+        {showPreviewText && preview ? <span className="min-w-0 truncate text-sm text-[var(--text-secondary)]">- {preview}</span> : null}
       </div>
       <div className="flex shrink-0 items-center gap-2 justify-self-end">
         {sourceLabel ? (
-          <span className={`hidden max-w-[180px] shrink-0 items-center gap-2 truncate rounded-full border px-2 py-0.5 text-[11px] font-semibold xl:inline-flex ${accountColors.pill}`}>
-            <span className={`h-2 w-2 shrink-0 rounded-full ${accountColors.dot}`} />
+          <span className="hidden max-w-[180px] shrink-0 items-center gap-2 truncate rounded-full border border-[var(--border-color)] bg-[var(--bg-surface)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-secondary)] xl:inline-flex">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--avatar-text)]" />
             <span className="truncate">{sourceLabel}</span>
+          </span>
+        ) : null}
+        {categoryLabel ? (
+          <span
+            className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${categoryLabel.className}`}
+          >
+            {categoryLabel.label}
           </span>
         ) : null}
         {priority ? (
@@ -101,7 +122,7 @@ export function MailItem({
             {priority}
           </span>
         ) : null}
-        <span className="shrink-0 text-xs text-gray-400">{time}</span>
+        <span className="shrink-0 text-xs text-[var(--text-muted)]">{time}</span>
       </div>
       <div className="mt-1 flex items-center gap-1 justify-self-end">
         <button
@@ -112,8 +133,8 @@ export function MailItem({
           }}
           className={`rounded-full border p-2 transition ${
             isStarred
-              ? "border-amber-200 text-amber-600 hover:border-amber-300 hover:text-amber-700"
-              : "border-gray-200 text-gray-400 opacity-0 group-hover:opacity-100 hover:border-amber-300 hover:text-amber-600"
+              ? "border-[var(--tag-promotional-text)] text-[var(--tag-promotional-text)] hover:brightness-95"
+              : "border-[var(--border-color)] text-[var(--text-muted)] opacity-0 group-hover:opacity-100 hover:text-[var(--text-primary)]"
           }`}
           aria-label={isStarred ? "Unstar" : "Star"}
           aria-pressed={isStarred}
@@ -126,7 +147,7 @@ export function MailItem({
             event.stopPropagation()
             onToggleRead?.()
           }}
-          className="rounded-full border border-gray-200 p-2 text-gray-500 opacity-0 transition group-hover:opacity-100 hover:border-blue-300 hover:text-blue-600"
+          className="rounded-full border border-[var(--border-color)] p-2 text-[var(--text-muted)] opacity-0 transition group-hover:opacity-100 hover:text-[var(--text-primary)]"
           aria-label={unread ? "Mark read" : "Mark unread"}
         >
           <MailOpen size={14} />
@@ -137,7 +158,7 @@ export function MailItem({
             event.stopPropagation()
             onArchive?.()
           }}
-          className="rounded-full border border-gray-200 p-2 text-gray-500 opacity-0 transition group-hover:opacity-100 hover:border-blue-300 hover:text-blue-600"
+          className="rounded-full border border-[var(--border-color)] p-2 text-[var(--text-muted)] opacity-0 transition group-hover:opacity-100 hover:text-[var(--text-primary)]"
           aria-label="Archive"
         >
           <Archive size={14} />
@@ -148,7 +169,7 @@ export function MailItem({
             event.stopPropagation()
             onDelete?.()
           }}
-          className="rounded-full border border-gray-200 p-2 text-gray-500 opacity-0 transition group-hover:opacity-100 hover:border-rose-300 hover:text-rose-600"
+          className="rounded-full border border-[var(--border-color)] p-2 text-[var(--text-muted)] opacity-0 transition group-hover:opacity-100 hover:text-[var(--tag-highrisk-text)]"
           aria-label="Delete"
         >
           <Trash2 size={14} />

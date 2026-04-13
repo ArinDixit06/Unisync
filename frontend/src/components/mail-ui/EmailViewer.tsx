@@ -126,7 +126,7 @@ export function EmailViewer({ email }: { email: any }) {
   if (!html) {
     return (
       <div className="w-full px-4 py-4 lg:px-6">
-        <pre className="whitespace-pre-wrap text-sm text-gray-700">{plain}</pre>
+        <pre className="whitespace-pre-wrap text-sm text-[var(--text-primary)]">{plain}</pre>
       </div>
     )
   }

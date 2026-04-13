@@ -49,7 +49,7 @@ export const Default: Story = {
   render: () => (
     <AppShell
       sidebarProps={{
-        labels: [{ id: "label-1", name: "School", color: "#0f766e" }],
+        labels: [{ id: "label-1", name: "School", color: "var(--avatar-text)" }],
         activeFilter: "all",
         activeCategory: "all",
         activeLabelId: null,
@@ -76,7 +76,7 @@ export const Default: Story = {
         />
       }
       list={
-        <div id="mail-list" className="h-full border-r border-gray-200/70 bg-white" tabIndex={-1}>
+        <div id="mail-list" className="h-full border-r border-[var(--border-color)] bg-[var(--bg-main)]" tabIndex={-1}>
           <MailList
             emails={[sampleEmail as any, { ...sampleEmail, id: "mail-2", subject: "Project feedback", is_read: true } as any]}
             selectedEmailId="mail-1"
@@ -97,7 +97,7 @@ export const Default: Story = {
           aria-label="Email preview"
           aria-selected="true"
         >
-          <div className="h-full border-l border-gray-200/70 bg-white">
+          <div className="h-full border-l border-[var(--border-color)] bg-[var(--bg-main)]">
             <MailPreview
               email={sampleEmail as any}
               onArchive={() => {}}

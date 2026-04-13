@@ -20,10 +20,10 @@ export function AppShell({
   children?: React.ReactNode
 }) {
   return (
-    <div className="relative flex h-screen w-full overflow-hidden bg-[var(--color-bg-base)]">
+    <div className="relative flex h-screen w-full overflow-hidden bg-[var(--bg-app)]">
       <a
         href="#mail-list"
-        className="sr-only absolute left-4 top-4 z-50 rounded-full border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="sr-only absolute left-4 top-4 z-50 rounded-full border border-[var(--accent-primary)] bg-[var(--bg-main)] px-4 py-2 text-sm font-semibold text-[var(--accent-primary)] shadow-sm focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
       >
         Skip to list
       </a>
@@ -37,7 +37,7 @@ export function AppShell({
       {sidebarOpen ? (
         <button
           type="button"
-          className="fixed inset-0 z-30 bg-black/30 lg:hidden"
+          className="fixed inset-0 z-30 bg-[var(--overlay-backdrop)] lg:hidden"
           onClick={onSidebarToggle}
           aria-label="Close sidebar"
         />

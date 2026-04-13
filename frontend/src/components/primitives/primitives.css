@@ -5,7 +5,9 @@
   font-weight: 600;
   font-size: var(--type-sm);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-default);
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow, opacity, transform;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-default);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -109,10 +111,10 @@
   color: var(--color-text-secondary);
 }
 
-.badge.success { background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0; }
-.badge.warning { background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A; }
-.badge.danger { background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; }
-.badge.info { background: #DBEAFE; color: #1D4ED8; border: 1px solid #BFDBFE; }
+.badge.success { background: var(--tag-transactional-bg); color: var(--tag-transactional-text); border: 1px solid color-mix(in srgb, var(--tag-transactional-text) 18%, transparent); }
+.badge.warning { background: var(--tag-promotional-bg); color: var(--tag-promotional-text); border: 1px solid color-mix(in srgb, var(--tag-promotional-text) 18%, transparent); }
+.badge.danger { background: var(--tag-highrisk-bg); color: var(--tag-highrisk-text); border: 1px solid color-mix(in srgb, var(--tag-highrisk-text) 18%, transparent); }
+.badge.info { background: var(--accent-bg); color: var(--accent-primary); border: 1px solid color-mix(in srgb, var(--accent-primary) 18%, transparent); }
 
 .avatar {
   border-radius: 50%;
@@ -165,7 +167,7 @@
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--color-bg-subtle) 25%, rgba(255,255,255,0.4) 50%, var(--color-bg-subtle) 75%);
+  background: linear-gradient(90deg, var(--color-bg-subtle) 25%, color-mix(in srgb, var(--color-bg-surface) 40%, transparent) 50%, var(--color-bg-subtle) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.2s ease-in-out infinite;
   border-radius: var(--radius-sm);
@@ -268,7 +270,7 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(8, 10, 12, 0.5);
+  background: var(--overlay-backdrop);
   backdrop-filter: blur(6px);
   display: flex;
   align-items: center;

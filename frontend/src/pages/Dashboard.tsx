@@ -517,7 +517,7 @@ export function Dashboard() {
       list={
         <div
           id="mail-list"
-          className="flex h-full w-full min-w-0 flex-1 overflow-hidden border-r border-gray-200/70 bg-white"
+          className="flex h-full w-full min-w-0 flex-1 overflow-hidden border-r border-[var(--border-color)] bg-[var(--bg-main)]"
           tabIndex={-1}
         >
           <MailList
@@ -545,14 +545,14 @@ export function Dashboard() {
       }
       detail={
         <div
-          className={`fixed inset-0 z-20 w-full bg-[var(--color-bg-base)] transition duration-200 ease-out lg:static lg:inset-auto lg:z-auto lg:h-full lg:w-full lg:flex-1 lg:translate-x-0 ${
+          className={`fixed inset-0 z-20 w-full bg-[var(--bg-app)] transition duration-200 ease-out lg:static lg:inset-auto lg:z-auto lg:h-full lg:w-full lg:flex-1 lg:translate-x-0 ${
             selectedEmailId ? "translate-x-0" : "translate-x-full lg:translate-x-0"
           }`}
           role="region"
           aria-label="Email preview"
           aria-selected={Boolean(selectedEmailId)}
         >
-          <div className="flex h-full w-full min-w-0 flex-1 border-l border-gray-200/70 bg-white">
+          <div className="flex h-full w-full min-w-0 flex-1 border-l border-[var(--border-color)] bg-[var(--bg-main)]">
             <MailPreview
               email={activeFilter === "drafts" ? draftDetail : emailDetail}
               onArchive={() => emailDetail && handleArchive(emailDetail.id)}

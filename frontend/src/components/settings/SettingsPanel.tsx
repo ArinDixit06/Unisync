@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { formatDistanceToNow } from "date-fns"
 import { X } from "lucide-react"
+import { useTheme, type ThemePreference } from "../../contexts/ThemeContext"
 import { Toggle } from "./Toggle"
 
 type AccountLike = {
@@ -20,6 +21,47 @@ function readStoredBoolean(key: string, fallback: boolean) {
 function readStoredSortOrder() {
   if (typeof window === "undefined") return "recent" as const
   return window.localStorage.getItem("email_sort_order") === "oldest" ? "oldest" : "recent"
+}
+
+function ThemeSegmentedControl({
+  value,
+  onChange
+}: {
+  value: ThemePreference
+  onChange: (value: ThemePreference) => void
+}) {
+  const options: Array<{ value: ThemePreference; label: string }> = [
+    { value: "light", label: "Light" },
+    { value: "system", label: "System" },
+    { value: "dark", label: "Dark" }
+  ]
+  const selectedIndex = options.findIndex((item) => item.value === value)
+
+  return (
+    <div className="relative grid grid-cols-3 rounded-[8px] border-[0.5px] border-[var(--border-color)] bg-[var(--bg-hover)] p-px">
+      <span
+        className="pointer-events-none absolute inset-y-px left-px w-[calc((100%-2px)/3)] rounded-[7px] bg-[var(--accent-primary)] transition-transform duration-200 ease-out"
+        style={{ transform: `translateX(${Math.max(selectedIndex, 0) * 100}%)` }}
+        aria-hidden="true"
+      />
+      {options.map((option) => {
+        const active = value === option.value
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={`relative z-10 inline-flex items-center justify-center gap-1.5 rounded-[7px] px-3 py-2 text-xs font-semibold transition ${
+              active ? "text-white" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+            aria-pressed={active}
+          >
+            {option.label}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 export function SettingsPanel({
@@ -51,6 +93,7 @@ export function SettingsPanel({
   onShowPreviewTextChange: (value: boolean) => void
   lastSyncedAt?: number | null
 }) {
+  const { themePreference, setTheme } = useTheme()
   const [mounted, setMounted] = useState(open)
   const [visible, setVisible] = useState(open)
   const [desktopNotificationsEnabled, setDesktopNotificationsEnabled] = useState(false)
@@ -89,15 +132,10 @@ export function SettingsPanel({
 
   useEffect(() => {
     if (!mounted) return
-    const desktop = readStoredBoolean("desktop_notifications_enabled", false)
-    const alerts = readStoredBoolean("new_email_alerts_enabled", false)
-    const preview = readStoredBoolean("show_preview", true)
-    const storedSortOrder = readStoredSortOrder()
-
-    setDesktopNotificationsEnabled(desktop)
-    setNewEmailAlertsEnabled(alerts)
-    onShowPreviewTextChange(preview)
-    onSortOrderChange(storedSortOrder)
+    setDesktopNotificationsEnabled(readStoredBoolean("desktop_notifications_enabled", false))
+    setNewEmailAlertsEnabled(readStoredBoolean("new_email_alerts_enabled", false))
+    onShowPreviewTextChange(readStoredBoolean("show_preview", true))
+    onSortOrderChange(readStoredSortOrder())
   }, [mounted, onShowPreviewTextChange, onSortOrderChange])
 
   useEffect(() => {
@@ -152,23 +190,23 @@ export function SettingsPanel({
     window.localStorage.setItem("email_sort_order", nextValue)
   }
 
+  const dangerZoneStyle = {
+    background: "color-mix(in srgb, var(--tag-highrisk-bg) 24%, transparent)",
+    border: "1px solid color-mix(in srgb, var(--tag-highrisk-text) 18%, transparent)"
+  }
+
   return createPortal(
-    <div
-      className={`fixed inset-0 z-50 transition-opacity duration-200 ${
-        visible ? "opacity-100" : "opacity-0"
-      }`}
-      aria-hidden={!visible}
-    >
+    <div className={`fixed inset-0 z-50 transition-opacity duration-200 ${visible ? "opacity-100" : "opacity-0"}`}>
       <button
         type="button"
-        className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${
+        className={`absolute inset-0 bg-[var(--overlay-backdrop)] transition-opacity duration-200 ${
           visible ? "opacity-100" : "opacity-0"
         }`}
         aria-label="Close settings"
         onClick={onClose}
       />
       <aside
-        className={`absolute right-0 top-0 flex h-full w-full max-w-[420px] transform flex-col bg-white shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+        className={`absolute right-0 top-0 flex h-full w-full max-w-[420px] transform flex-col bg-[var(--bg-sidebar)] shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
           visible ? "translate-x-0" : "translate-x-full"
         }`}
         role="dialog"
@@ -176,12 +214,12 @@ export function SettingsPanel({
         aria-label="Settings"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">Settings</h2>
+        <div className="flex items-center justify-between border-b border-[var(--border-color)] px-5 py-4">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">Settings</h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-gray-200 p-2 text-gray-500 transition hover:border-blue-300 hover:text-blue-700"
+            className="rounded-full border border-[var(--border-color)] p-2 text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
             aria-label="Close settings"
           >
             <X size={16} />
@@ -189,18 +227,18 @@ export function SettingsPanel({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-5">
-          <section className="space-y-3 border-b border-gray-200 pb-5">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Account</h3>
+          <section className="space-y-3 border-b border-[var(--border-color)] pb-5">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">ACCOUNT</h3>
             {account ? (
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-gray-900">{account.email}</p>
-                  <p className="truncate text-xs text-gray-500">{account.name}</p>
+                  <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{account.email}</p>
+                  <p className="truncate text-xs text-[var(--text-secondary)]">{account.name}</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => onDisconnectAccount?.(account.id)}
-                  className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:border-rose-300 hover:text-rose-600"
+                  className="rounded-full border border-[var(--border-color)] bg-[var(--bg-hover)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)]"
                 >
                   Disconnect
                 </button>
@@ -209,47 +247,54 @@ export function SettingsPanel({
               <button
                 type="button"
                 onClick={onConnectGmail}
-                className="rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-semibold text-teal-700 transition hover:bg-teal-100"
+                className="rounded-full border border-[var(--border-color)] bg-[var(--bg-hover)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)]"
               >
                 Connect Gmail
               </button>
             )}
-            <p className="text-xs text-gray-500">Press Alt+A to switch accounts</p>
+            <p className="text-xs text-[var(--text-muted)]">Press Alt+A to switch accounts</p>
           </section>
 
-          <section className="space-y-4 border-b border-gray-200 py-5">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Notifications</h3>
+          <section className="space-y-4 border-b border-[var(--border-color)] py-5">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">NOTIFICATIONS</h3>
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-gray-900">Desktop notifications</p>
-                <p className="text-xs text-gray-500">Ask before enabling desktop alerts.</p>
+                <p className="text-sm font-medium text-[var(--text-primary)]">Desktop notifications</p>
+                <p className="text-xs text-[var(--text-secondary)]">Ask before enabling desktop alerts.</p>
               </div>
               <Toggle checked={desktopNotificationsEnabled} onChange={handleDesktopNotificationsToggle} />
             </div>
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-gray-900">New email alerts</p>
-                <p className="text-xs text-gray-500">Store alert preference locally.</p>
+                <p className="text-sm font-medium text-[var(--text-primary)]">New email alerts</p>
+                <p className="text-xs text-[var(--text-secondary)]">Store alert preference locally.</p>
               </div>
               <Toggle checked={newEmailAlertsEnabled} onChange={handleNewEmailAlertsToggle} />
             </div>
           </section>
 
-          <section className="space-y-4 border-b border-gray-200 py-5">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Display</h3>
+          <section className="space-y-4 border-b border-[var(--border-color)] py-5">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">DISPLAY</h3>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-[var(--text-primary)]">App theme</p>
+                <p className="text-xs text-[var(--text-secondary)]">Switch between light and dark mode</p>
+              </div>
+              <ThemeSegmentedControl value={themePreference} onChange={setTheme} />
+            </div>
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-gray-900">Show preview text in email list</p>
-                <p className="text-xs text-gray-500">Hide snippets to keep the inbox denser.</p>
+                <p className="text-sm font-medium text-[var(--text-primary)]">Show preview text in email list</p>
+                <p className="text-xs text-[var(--text-secondary)]">Hide snippets to keep the inbox denser.</p>
               </div>
               <Toggle checked={showPreviewText} onChange={handlePreviewToggle} />
             </div>
             <label className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-gray-900">Sort emails by</span>
+              <span className="text-sm font-medium text-[var(--text-primary)]">Sort emails by</span>
               <select
                 value={sortOrder}
                 onChange={(event) => handleSortChange(event.target.value === "oldest" ? "oldest" : "recent")}
-                className="rounded-2xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm outline-none transition focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
+                className="rounded-2xl border border-[var(--input-border)] bg-[var(--input-bg)] px-3 py-2 text-sm text-[var(--text-primary)] shadow-sm outline-none"
               >
                 <option value="recent">Most recent</option>
                 <option value="oldest">Oldest first</option>
@@ -257,26 +302,26 @@ export function SettingsPanel({
             </label>
           </section>
 
-          <section className="space-y-4 border-b border-gray-200 py-5">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500">Sync</h3>
+          <section className="space-y-4 border-b border-[var(--border-color)] py-5">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">SYNC</h3>
             <button
               type="button"
               onClick={onSyncNow}
-              className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-blue-300 hover:text-blue-700"
+              className="rounded-full border border-[var(--border-color)] bg-[var(--bg-hover)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)]"
             >
               Sync now
             </button>
-            {lastSyncedLabel ? <p className="text-xs text-gray-500">Last synced: {lastSyncedLabel}</p> : null}
+            {lastSyncedLabel ? <p className="text-xs text-[var(--text-muted)]">Last synced: {lastSyncedLabel}</p> : null}
           </section>
 
-          <section className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-red-600">Danger Zone</h3>
+          <section className="mt-5 rounded-lg p-4" style={dangerZoneStyle}>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-[var(--tag-highrisk-text)]">DANGER ZONE</h3>
             <div className="mt-4 flex items-center justify-between gap-3">
-              <p className="text-sm text-red-700">Sign out from this device.</p>
+              <p className="text-sm text-[var(--tag-highrisk-text)]">Sign out from this device.</p>
               <button
                 type="button"
                 onClick={onLogout}
-                className="rounded-full border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100"
+                className="rounded-full border border-[var(--tag-highrisk-text)] bg-[var(--tag-highrisk-bg)] px-4 py-2 text-sm font-semibold text-[var(--tag-highrisk-text)]"
               >
                 Sign out
               </button>

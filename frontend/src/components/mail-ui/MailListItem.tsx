@@ -53,9 +53,9 @@ export function MailListItem({
     <div
       className={`group flex items-center gap-4 rounded-2xl border border-transparent px-4 py-3 transition ${
         selected
-          ? "border-blue-200 bg-blue-50/70 shadow-soft"
-          : "hover:border-gray-200 hover:bg-white/80"
-      } ${email.is_read ? "text-gray-600" : "text-gray-900"} `}
+          ? "border-[var(--accent-primary)] bg-[var(--accent-bg)] shadow-soft"
+          : "hover:border-[var(--border-color)] hover:bg-[var(--bg-hover)]"
+      } ${email.is_read ? "text-[var(--text-secondary)]" : "text-[var(--text-primary)]"} `}
       onClick={onSelect}
       role="listitem"
       aria-selected={selected}
@@ -67,10 +67,10 @@ export function MailListItem({
           event.stopPropagation()
           onSelectToggle?.()
         }}
-        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        className="h-4 w-4 rounded border-[var(--border-color)] text-[var(--accent-primary)] focus:ring-[var(--accent-primary)]"
         aria-label="Select email"
       />
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-700">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--avatar-bg)] text-xs font-semibold text-[var(--avatar-text)]">
         {initials}
       </div>
       <div className="min-w-0 flex-1">
@@ -78,16 +78,21 @@ export function MailListItem({
           <p className={`truncate text-sm ${email.is_read ? "font-medium" : "font-semibold"}`}>
             {email.sender_name || email.sender_email}
           </p>
-          <span className="text-xs text-gray-400">{timeAgo}</span>
+          <span className="text-xs text-[var(--text-muted)]">{timeAgo}</span>
         </div>
         <p className={`truncate text-sm ${email.is_read ? "font-medium" : "font-semibold"}`}>
           {email.subject || "(No subject)"}
         </p>
-        {showPreviewText ? <p className="truncate text-xs text-gray-500">{email.preview_snippet}</p> : null}
-        <div className="mt-2 flex items-center gap-2 text-xs text-gray-400">
-          {email.provider ? <span className="rounded-full border px-2 py-0.5">{email.provider}</span> : null}
+        {showPreviewText ? <p className="truncate text-xs text-[var(--text-secondary)]">{email.preview_snippet}</p> : null}
+        <div className="mt-2 flex items-center gap-2 text-xs text-[var(--text-muted)]">
+          {email.category ? (
+            <span className="rounded-full border border-[var(--border-color)] bg-[var(--bg-surface)] px-2 py-0.5">
+              {email.category}
+            </span>
+          ) : null}
+          {email.provider ? <span className="rounded-full border border-[var(--border-color)] px-2 py-0.5">{email.provider}</span> : null}
           {email.processing_status && email.processing_status !== "done" ? (
-            <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-700">
+            <span className="rounded-full border border-[var(--tag-promotional-text)] bg-[var(--tag-promotional-bg)] px-2 py-0.5 text-[var(--tag-promotional-text)]">
               Analyzing
             </span>
           ) : null}
@@ -96,12 +101,12 @@ export function MailListItem({
       </div>
       <div className="flex items-center gap-2">
         {email.risk_level ? (
-          <span className="flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs text-rose-700">
+          <span className="flex items-center gap-1 rounded-full border border-[var(--tag-highrisk-text)] bg-[var(--tag-highrisk-bg)] px-2 py-0.5 text-xs text-[var(--tag-highrisk-text)]">
             <AlertTriangle size={12} /> {email.risk_level}
           </span>
         ) : null}
         {email.is_starred ? (
-          <span className="flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+          <span className="flex items-center gap-1 rounded-full border border-[var(--tag-promotional-text)] bg-[var(--tag-promotional-bg)] px-2 py-0.5 text-xs text-[var(--tag-promotional-text)]">
             <Star size={12} /> starred
           </span>
         ) : null}
@@ -113,7 +118,7 @@ export function MailListItem({
             event.stopPropagation()
             onToggleRead()
           }}
-          className="rounded-full border border-gray-200 p-2 text-gray-500 hover:border-blue-300 hover:text-blue-700"
+          className="rounded-full border border-[var(--border-color)] p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
           aria-label={email.is_read ? "Mark unread" : "Mark read"}
         >
           <MailOpen size={14} />
@@ -124,7 +129,7 @@ export function MailListItem({
             event.stopPropagation()
             onArchive()
           }}
-          className="rounded-full border border-gray-200 p-2 text-gray-500 hover:border-blue-300 hover:text-blue-700"
+          className="rounded-full border border-[var(--border-color)] p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
           aria-label="Archive"
         >
           <Archive size={14} />
@@ -135,7 +140,7 @@ export function MailListItem({
             event.stopPropagation()
             onDelete()
           }}
-          className="rounded-full border border-gray-200 p-2 text-gray-500 hover:border-rose-300 hover:text-rose-600"
+          className="rounded-full border border-[var(--border-color)] p-2 text-[var(--text-muted)] hover:text-[var(--tag-highrisk-text)]"
           aria-label="Delete"
         >
           <Trash2 size={14} />
@@ -147,7 +152,7 @@ export function MailListItem({
               event.stopPropagation()
               onToggleStar()
             }}
-            className="rounded-full border border-gray-200 p-2 text-gray-500 hover:border-amber-300 hover:text-amber-600"
+            className="rounded-full border border-[var(--border-color)] p-2 text-[var(--text-muted)] hover:text-[var(--tag-promotional-text)]"
             aria-label={email.is_starred ? "Unstar" : "Star"}
           >
             <Star size={14} />

@@ -20,8 +20,8 @@ export function LabelList({
         onClick={() => onSelect(null)}
         className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm ${
           activeLabelId === null
-            ? "bg-blue-50 text-blue-800"
-            : "text-gray-600 hover:bg-gray-100"
+            ? "bg-[var(--accent-bg)] text-[var(--accent-primary)]"
+            : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
         }`}
       >
         All Labels
@@ -33,14 +33,14 @@ export function LabelList({
           onClick={() => onSelect(label.id)}
           className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm ${
             activeLabelId === label.id
-              ? "bg-blue-50 text-blue-800"
-              : "text-gray-600 hover:bg-gray-100"
+              ? "bg-[var(--accent-bg)] text-[var(--accent-primary)]"
+              : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]"
           }`}
         >
           <span>{label.name}</span>
           <span
             className="h-2.5 w-2.5 rounded-full"
-            style={{ background: label.color || "#0f766e" }}
+            style={{ background: label.color || "var(--avatar-bg)" }}
             aria-hidden="true"
           />
         </button>
