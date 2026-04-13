@@ -139,3 +139,66 @@ export async function extractEvents(body: string): Promise<any[] | null> {
     }));
   return normalized.length ? normalized : null;
 }
+
+export async function emailInsights(
+  sender: string,
+  subject: string,
+  body: string,
+  question: string
+): Promise<{
+  answer: string;
+  key_points: string[];
+  suggested_action: string | null;
+}> {
+  const boundedBody = boundedText(body, 5000);
+  const boundedQuestion = boundedText(question, 400);
+
+  if (!boundedQuestion) {
+    return {
+      answer: "Please ask a question.",
+      key_points: [],
+      suggested_action: null
+    };
+  }
+
+  const prompt =
+    "You are an AI assistant helping a university student understand their email.\n" +
+    "Given the email below, answer the user's question clearly and helpfully.\n" +
+    'Return JSON only with this shape: {"answer":"string (2-4 sentences)","key_points":["string", ...],"suggested_action":"string or null"}\n\n' +
+    `SENDER: ${boundedText(sender, 200)}\n` +
+    `SUBJECT: ${boundedText(subject, 300)}\n` +
+    `BODY:\n${boundedBody}\n\n` +
+    `USER QUESTION: ${boundedQuestion}`;
+
+  try {
+    const data = await callJson(flashModel(), prompt);
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return {
+        answer: "Could not parse AI response.",
+        key_points: [],
+        suggested_action: null
+      };
+    }
+
+    const answer = String((data as any).answer ?? "").trim().slice(0, 800) || "No answer generated.";
+    const keyPoints = Array.isArray((data as any).key_points)
+      ? (data as any).key_points
+          .map((point: unknown) => String(point).trim().slice(0, 200))
+          .filter(Boolean)
+          .slice(0, 5)
+      : [];
+    const suggestedAction = String((data as any).suggested_action ?? "").trim().slice(0, 300) || null;
+
+    return {
+      answer,
+      key_points: keyPoints,
+      suggested_action: suggestedAction
+    };
+  } catch {
+    return {
+      answer: "AI is temporarily unavailable. Please try again shortly.",
+      key_points: [],
+      suggested_action: null
+    };
+  }
+}

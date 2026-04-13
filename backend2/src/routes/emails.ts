@@ -9,6 +9,11 @@ import { notFound } from "../errors.js";
 import { RateLimiter, rateLimit, userKey } from "../rateLimit.js";
 import { bumpUserCacheVersion, getCachedJson, getUserCacheVersion, setCachedJson } from "../services/cache.js";
 import { count, insert, select, update } from "../supabaseRest.js";
+import { emailInsights } from "../services/gemini.js";
+
+type InsightsRequestBody = {
+  question?: string;
+};
 
 const router = Router();
 const emailLimiter = new RateLimiter(120, "emails");
@@ -207,6 +212,41 @@ router.get("/:emailId", async (request: AuthenticatedRequest, response, next) =>
       }
     }
     result.suggested_events = events.filter((item) => item.dismissed_at == null);
+    response.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/:emailId/insights", async (request: AuthenticatedRequest, response, next) => {
+  try {
+    const emailId = String(request.params.emailId)
+    const body = (request.body || {}) as InsightsRequestBody;
+    const question = String(body.question ?? "").trim();
+    if (!question) {
+      response.json({ answer: "Please ask a question.", key_points: [], suggested_action: null });
+      return;
+    }
+
+    const rows = await select(
+      "emails",
+      "id,user_id,subject,sender_name,sender_email,body_html,body_html_enc",
+      {
+        filters: [["id", "eq", emailId], ["user_id", "eq", request.currentUser!.userId]],
+        userToken: request.currentUser!.token
+      }
+    );
+    if (!rows.length) notFound("Email not found");
+
+    const email = rows[0];
+    const bodyHtml = decryptMailText(email.body_html_enc) || email.body_html || "";
+    const bodyText = load(bodyHtml).text().replace(/\s+/g, " ").trim();
+    const result = await emailInsights(
+      email.sender_email || "",
+      email.subject || "",
+      bodyText,
+      question
+    );
     response.json(result);
   } catch (error) {
     next(error);
