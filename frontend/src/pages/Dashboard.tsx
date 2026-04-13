@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiFetch, getWsBaseUrl } from "../lib/api"
 import { AppShell, TopBar } from "../components/layout"
-import { ComposeButton, MailList, MailPreview } from "../components/mail-ui"
+import { ComposeButton, EmptyState, MailList, MailPreview } from "../components/mail-ui"
 import { ComposeModal } from "../components/compose/ComposeModal"
 import { SearchCommand } from "../components/search/SearchCommand"
 import { useUIStore } from "../stores/uiStore"
@@ -13,6 +13,8 @@ export function Dashboard() {
   const [composeOpen, setComposeOpen] = useState(false)
   const [composeInitialData, setComposeInitialData] = useState<any | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [mailSearchQuery, setMailSearchQuery] = useState("")
+  const [debouncedMailSearchQuery, setDebouncedMailSearchQuery] = useState("")
   const [syncing, setSyncing] = useState(false)
   const queryClient = useQueryClient()
   const syncHandledRef = useRef(false)
@@ -60,6 +62,11 @@ export function Dashboard() {
   }, [activeAccountId, linkedAccounts, setState])
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => setDebouncedMailSearchQuery(mailSearchQuery.trim()), 250)
+    return () => window.clearTimeout(timeout)
+  }, [mailSearchQuery])
+
+  useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault()
@@ -79,7 +86,7 @@ export function Dashboard() {
     const wsUrl = `${resolvedWsBaseUrl}/ws`
     const socket = new WebSocket(wsUrl, [accessToken])
     socket.onmessage = () => {
-      queryClient.invalidateQueries({ queryKey: ["emails"] })
+      invalidateMailQueries()
       if (selectedEmailId) {
         queryClient.invalidateQueries({ queryKey: ["email", selectedEmailId] })
       }
@@ -96,7 +103,7 @@ export function Dashboard() {
     setSyncing(true)
     void apiFetch(`/sync/account/${accountId}`, { method: "POST" })
       .then(() => {
-        queryClient.invalidateQueries({ queryKey: ["emails"] })
+        invalidateMailQueries()
         queryClient.invalidateQueries({ queryKey: ["accounts"] })
       })
       .finally(() => {
@@ -116,6 +123,12 @@ export function Dashboard() {
   }
   if (activeFilter !== "all" && activeFilter !== "drafts") listParams.set("filter", activeFilter)
   if (activeLabelId) listParams.set("label_id", activeLabelId)
+  const hasMailSearchQuery = debouncedMailSearchQuery.length > 0
+  const searchParams = new URLSearchParams(listParams)
+  if (hasMailSearchQuery) {
+    searchParams.set("q", debouncedMailSearchQuery)
+    searchParams.set("limit", "100")
+  }
 
   const { data: emailsData, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["emails", activeAccountId, activeCategory, activeFilter, activeLabelId],
@@ -127,8 +140,24 @@ export function Dashboard() {
       return apiFetch(`/emails?${pageParams.toString()}`)
     },
     getNextPageParam: (lastPage: any) => lastPage?.next_offset ?? undefined,
-    enabled: activeFilter !== "drafts"
+    enabled: activeFilter !== "drafts" && !hasMailSearchQuery
   })
+
+  const {
+    data: searchData,
+    isFetching: isSearchingMail,
+    isError: isSearchError,
+    error: searchError
+  } = useQuery({
+    queryKey: ["emails-search", activeAccountId, activeCategory, activeFilter, activeLabelId, debouncedMailSearchQuery],
+    queryFn: () => apiFetch(`/search?${searchParams.toString()}`),
+    enabled: activeFilter !== "drafts" && hasMailSearchQuery
+  })
+
+  const invalidateMailQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["emails"] })
+    queryClient.invalidateQueries({ queryKey: ["emails-search"] })
+  }
 
   const { data: draftsData } = useQuery({
     queryKey: ["drafts"],
@@ -150,6 +179,9 @@ export function Dashboard() {
           account_email: ""
         }))
       : emailsData?.pages?.flatMap((page: any) => page.emails || []) || []
+  const searchEmails = searchData?.emails || []
+  const visibleEmails =
+    activeFilter === "drafts" ? emails : hasMailSearchQuery ? searchEmails : emails
 
   const { data: emailDetail } = useQuery({
     queryKey: ["email", selectedEmailId],
@@ -158,7 +190,7 @@ export function Dashboard() {
     enabled:
       Boolean(selectedEmailId) &&
       activeFilter !== "drafts" &&
-      emails.some((email: any) => email.id === selectedEmailId)
+      visibleEmails.some((email: any) => email.id === selectedEmailId)
   })
 
   const draftDetail =
@@ -183,10 +215,10 @@ export function Dashboard() {
 
   useEffect(() => {
     if (activeFilter === "drafts") return
-    if (selectedEmailId && !emails.some((email: any) => email.id === selectedEmailId)) {
+    if (selectedEmailId && !visibleEmails.some((email: any) => email.id === selectedEmailId)) {
       setState({ selectedEmailId: null })
     }
-  }, [activeFilter, emails, selectedEmailId, setState])
+  }, [activeFilter, selectedEmailId, setState, visibleEmails])
 
   const handleSelect = (email: any) => {
     setState({ selectedEmailId: email.id })
@@ -197,7 +229,7 @@ export function Dashboard() {
       void apiFetch(`/emails/${email.id}`, {
         method: "PATCH",
         body: JSON.stringify({ is_read: true })
-      }).then(() => queryClient.invalidateQueries({ queryKey: ["emails"] }))
+      }).then(() => invalidateMailQueries())
     }
   }
 
@@ -207,7 +239,7 @@ export function Dashboard() {
       method: "PATCH",
       body: JSON.stringify({ is_archived: true })
     })
-    queryClient.invalidateQueries({ queryKey: ["emails"] })
+    invalidateMailQueries()
     queryClient.invalidateQueries({ queryKey: ["emails-count"] })
     if (selectedEmailId === emailId) setState({ selectedEmailId: null })
   }
@@ -220,7 +252,7 @@ export function Dashboard() {
       return
     }
     await apiFetch(`/emails/${emailId}`, { method: "DELETE" })
-    queryClient.invalidateQueries({ queryKey: ["emails"] })
+    invalidateMailQueries()
     queryClient.invalidateQueries({ queryKey: ["emails-count"] })
     if (selectedEmailId === emailId) setState({ selectedEmailId: null })
   }
@@ -231,7 +263,7 @@ export function Dashboard() {
       method: "PATCH",
       body: JSON.stringify({ is_read: !email.is_read })
     })
-    queryClient.invalidateQueries({ queryKey: ["emails"] })
+    invalidateMailQueries()
     queryClient.invalidateQueries({ queryKey: ["email", email.id] })
     queryClient.invalidateQueries({ queryKey: ["emails-count"] })
   }
@@ -262,7 +294,7 @@ export function Dashboard() {
       throw error
     })
 
-    queryClient.invalidateQueries({ queryKey: ["emails"] })
+    invalidateMailQueries()
     queryClient.invalidateQueries({ queryKey: ["email", email.id] })
     queryClient.invalidateQueries({ queryKey: ["emails-count"] })
   }
@@ -285,7 +317,7 @@ export function Dashboard() {
       for (const accountId of accountIds) {
         await apiFetch(`/sync/account/${accountId}`, { method: "POST" })
       }
-      queryClient.invalidateQueries({ queryKey: ["emails"] })
+      invalidateMailQueries()
       queryClient.invalidateQueries({ queryKey: ["emails-count"] })
     } finally {
       setSyncing(false)
@@ -328,6 +360,35 @@ export function Dashboard() {
     accountOptions.find((account) => account.id === (activeAccountId || "all")) || accountOptions[0]
   const syncAnnouncement = syncing ? "Syncing mailbox" : "Mail sync ready"
   const detailOpen = Boolean(selectedEmailId)
+  const isMailSearchActive = activeFilter !== "drafts" && hasMailSearchQuery
+  const searchErrorMessage = searchError instanceof Error ? searchError.message : "Search failed"
+  const mailListEmptyState = isMailSearchActive ? (
+    isSearchingMail ? (
+      <EmptyState
+        title="Searching..."
+        description={`Looking for "${debouncedMailSearchQuery}" across your mailbox.`}
+        shortcutHint="Typing is debounced by 250ms"
+      />
+    ) : isSearchError ? (
+      <EmptyState
+        title="Search failed"
+        description={searchErrorMessage}
+        shortcutHint="Try again in a moment"
+      />
+    ) : (
+      <EmptyState
+        title="No matches found"
+        description={`No mail matches "${debouncedMailSearchQuery}". Try sender, subject, or email.`}
+        shortcutHint="Clear the search to see all mail"
+      />
+    )
+  ) : (
+    <EmptyState
+      title="No mail to show"
+      description="This mailbox is empty for the current filter."
+      shortcutHint="Use / to search"
+    />
+  )
 
   const handleDisconnectAccount = async (accountId: string) => {
     await apiFetch(`/auth/accounts/${accountId}`, { method: "DELETE" })
@@ -335,7 +396,7 @@ export function Dashboard() {
       setState({ activeAccountId: null, selectedEmailId: null })
     }
     queryClient.invalidateQueries({ queryKey: ["accounts"] })
-    queryClient.invalidateQueries({ queryKey: ["emails"] })
+    invalidateMailQueries()
     queryClient.invalidateQueries({ queryKey: ["emails-count"] })
     queryClient.invalidateQueries({ queryKey: ["drafts"] })
   }
@@ -421,6 +482,8 @@ export function Dashboard() {
           syncAnnouncement={syncAnnouncement}
           onToggleSidebar={() => setState({ sidebarOpen: !sidebarOpen })}
           unreadCount={activeFilter === "drafts" ? 0 : emails.filter((email: any) => !email.is_read).length}
+          searchValue={mailSearchQuery}
+          onSearchChange={setMailSearchQuery}
         />
       }
       list={
@@ -430,7 +493,7 @@ export function Dashboard() {
           tabIndex={-1}
         >
           <MailList
-            emails={emails}
+            emails={visibleEmails}
             selectedEmailId={selectedEmailId}
             activeFilter={activeFilter}
             onFilterChange={(filter) => setState({ activeFilter: filter })}
@@ -446,6 +509,7 @@ export function Dashboard() {
                 void fetchNextPage()
               }
             }}
+            emptyState={mailListEmptyState}
           />
         </div>
       }

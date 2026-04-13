@@ -10,7 +10,9 @@ export function Topbar({
   syncDisabled,
   syncLoading,
   syncAnnouncement,
-  onToggleSidebar
+  onToggleSidebar,
+  searchValue = "",
+  onSearchChange
 }: {
   onCompose: () => void
   onSync: () => void
@@ -21,6 +23,8 @@ export function Topbar({
   syncLoading?: boolean
   syncAnnouncement?: string
   onToggleSidebar?: () => void
+  searchValue?: string
+  onSearchChange?: (value: string) => void
 }) {
   return (
     <header className="col-span-full flex items-center justify-between gap-4 border-b border-gray-200/70 bg-white px-4 py-3 shadow-sm lg:col-start-2 lg:col-end-4">
@@ -40,7 +44,11 @@ export function Topbar({
       </div>
 
       <div className="flex w-full max-w-xl flex-1 items-center">
-        <SearchBar placeholder="Search mail, sender or subject" />
+        <SearchBar
+          placeholder="Search mail, sender or subject"
+          value={searchValue}
+          onChange={(value) => onSearchChange?.(value)}
+        />
       </div>
 
       <div className="flex items-center gap-2">

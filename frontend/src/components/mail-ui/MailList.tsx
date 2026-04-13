@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { Filter } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
+import { EmptyState } from "./EmptyState"
 import { MailItem } from "./MailItem"
 import { MailListItemData } from "./MailListItem"
 
@@ -17,7 +18,8 @@ export function MailList({
   onToggleStar,
   hasMore = false,
   loadingMore = false,
-  onLoadMore
+  onLoadMore,
+  emptyState
 }: {
   emails: MailListItemData[]
   selectedEmailId: string | null
@@ -33,6 +35,7 @@ export function MailList({
   hasMore?: boolean
   loadingMore?: boolean
   onLoadMore?: () => void
+  emptyState?: React.ReactNode
 }) {
   const listRef = useRef<HTMLDivElement | null>(null)
   const [multiSelect, setMultiSelect] = useState<Record<string, boolean>>({})
@@ -137,48 +140,69 @@ export function MailList({
           }
         }}
       >
-        <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, width: "100%", minWidth: "100%", position: "relative" }}>
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const email = emails[virtualRow.index]
-            return (
-              <div
-                key={email.id}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  transform: `translateY(${virtualRow.start}px)`
-                }}
-              >
-                <MailItem
-                  sender={email.sender_name || email.sender_email}
-                  subject={email.subject || "(No subject)"}
-                  preview={email.preview_snippet || ""}
-                  time={formatDistanceToNow(new Date(email.received_at), { addSuffix: true })}
-                  priority={email.priority_level || email.risk_level}
-                  sourceLabel={email.account_email || null}
-                  accountEmail={email.account_email || null}
-                  unread={!email.is_read}
-                  checked={Boolean(multiSelect[email.id])}
-                  selected={selectedEmailId === email.id}
-                  starred={Boolean(email.is_starred)}
-                  onToggleSelect={() =>
-                    setMultiSelect((prev) => ({ ...prev, [email.id]: !prev[email.id] }))
-                  }
-                  onClick={() => onSelect(email)}
-                  onArchive={() => onArchive(email.id)}
-                  onDelete={() => onDelete(email.id)}
-                  onToggleRead={() => onToggleRead(email)}
-                  onToggleStar={() => onToggleStar(email)}
-                />
-              </div>
-            )
-          })}
-        </div>
-        {loadingMore ? (
-          <div className="px-4 py-3 text-center text-xs text-gray-400">Loading more mail...</div>
-        ) : null}
+        {emails.length === 0 ? (
+          <div className="h-full px-4 py-6">
+            {emptyState ?? (
+              <EmptyState
+                title="No mail found"
+                description="Try a different search or clear the current filters."
+                shortcutHint="Use / to search"
+              />
+            )}
+          </div>
+        ) : (
+          <>
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                width: "100%",
+                minWidth: "100%",
+                position: "relative"
+              }}
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const email = emails[virtualRow.index]
+                return (
+                  <div
+                    key={email.id}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      transform: `translateY(${virtualRow.start}px)`
+                    }}
+                  >
+                    <MailItem
+                      sender={email.sender_name || email.sender_email}
+                      subject={email.subject || "(No subject)"}
+                      preview={email.preview_snippet || ""}
+                      time={formatDistanceToNow(new Date(email.received_at), { addSuffix: true })}
+                      priority={email.priority_level || email.risk_level}
+                      sourceLabel={email.account_email || null}
+                      accountEmail={email.account_email || null}
+                      unread={!email.is_read}
+                      checked={Boolean(multiSelect[email.id])}
+                      selected={selectedEmailId === email.id}
+                      starred={Boolean(email.is_starred)}
+                      onToggleSelect={() =>
+                        setMultiSelect((prev) => ({ ...prev, [email.id]: !prev[email.id] }))
+                      }
+                      onClick={() => onSelect(email)}
+                      onArchive={() => onArchive(email.id)}
+                      onDelete={() => onDelete(email.id)}
+                      onToggleRead={() => onToggleRead(email)}
+                      onToggleStar={() => onToggleStar(email)}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+            {loadingMore ? (
+              <div className="px-4 py-3 text-center text-xs text-gray-400">Loading more mail...</div>
+            ) : null}
+          </>
+        )}
       </div>
     </section>
   )

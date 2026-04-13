@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { Dashboard } from "./Dashboard"
 import { apiFetch } from "../lib/api"
@@ -52,6 +52,32 @@ vi.mock("@tanstack/react-query", () => ({
     if (queryKey[0] === "labels") {
       return { data: { labels: [] } }
     }
+    if (queryKey[0] === "emails-search") {
+      const searchTerm = String(queryKey[5] || "").toLowerCase()
+      if (searchTerm.includes("google")) {
+        return {
+          data: {
+            emails: [
+              {
+                id: "mail-2",
+                sender_name: "Google Workspace",
+                sender_email: "no-reply@google.com",
+                subject: "Welcome to Google",
+                preview_snippet: "Google account setup is complete",
+                received_at: "2026-04-10T12:00:00.000Z",
+                is_read: true,
+                is_starred: false,
+                account_email: "test@example.com"
+              }
+            ]
+          },
+          isFetching: false,
+          isError: false,
+          error: null
+        }
+      }
+      return { data: { emails: [] }, isFetching: false, isError: false, error: null }
+    }
     if (queryKey[0] === "email") {
       return {
         data: {
@@ -86,6 +112,28 @@ vi.mock("@tanstack/react-query", () => ({
               is_read: false,
               is_starred: false,
               account_email: "test@example.com"
+            },
+            {
+              id: "mail-2",
+              sender_name: "Slack",
+              sender_email: "no-reply@slack.com",
+              subject: "Workspace updates",
+              preview_snippet: "Slack workspace setup is complete",
+              received_at: "2026-04-10T12:00:00.000Z",
+              is_read: true,
+              is_starred: false,
+              account_email: "test@example.com"
+            },
+            {
+              id: "mail-3",
+              sender_name: "Notion",
+              sender_email: "no-reply@notion.so",
+              subject: "Weekly digest",
+              preview_snippet: "A roundup of pages you follow",
+              received_at: "2026-04-09T12:00:00.000Z",
+              is_read: true,
+              is_starred: false,
+              account_email: "test@example.com"
             }
           ]
         }
@@ -111,12 +159,23 @@ vi.mock("../components/layout", () => ({
       {children}
     </div>
   ),
-  TopBar: () => <div data-testid="topbar" />
+  TopBar: ({ searchValue, onSearchChange }: any) => (
+    <div data-testid="topbar">
+      <input
+        aria-label="Search mail, sender or subject"
+        value={searchValue ?? ""}
+        onChange={(event) => onSearchChange?.(event.target.value)}
+      />
+    </div>
+  )
 }))
 
 vi.mock("../components/mail-ui", () => ({
   ComposeButton: () => null,
-  MailList: () => <div data-testid="mail-list" />,
+  EmptyState: () => <div data-testid="empty-state" />,
+  MailList: ({ emails }: any) => (
+    <div data-testid="mail-list">{emails.length ? emails.map((email: any) => email.sender_name).join(", ") : "No matches found"}</div>
+  ),
   MailPreview: ({ onToggleStar }: any) => (
     <button type="button" onClick={onToggleStar}>
       Preview Star
@@ -136,6 +195,7 @@ vi.stubGlobal("WebSocket", MockWebSocket as any)
 
 describe("Dashboard", () => {
   afterEach(() => {
+    cleanup()
     vi.clearAllMocks()
   })
 
@@ -184,5 +244,50 @@ describe("Dashboard", () => {
         body: JSON.stringify({ is_starred: true })
       })
     )
+  })
+
+  it("filters the mail list as the search query changes", async () => {
+    vi.mocked(apiFetch).mockImplementation(async (path: string) => {
+      if (path.startsWith("/search?")) {
+        const params = new URLSearchParams(path.split("?")[1] || "")
+        const q = params.get("q") || ""
+        if (q.toLowerCase().includes("google")) {
+          return {
+            emails: [
+              {
+                id: "mail-2",
+                sender_name: "Google Workspace",
+                sender_email: "no-reply@google.com",
+                subject: "Welcome to Google",
+                preview_snippet: "Google account setup is complete",
+                received_at: "2026-04-10T12:00:00.000Z",
+                is_read: true,
+                is_starred: false,
+                account_email: "test@example.com"
+              }
+            ]
+          }
+        }
+        return { emails: [] }
+      }
+      return { status: "ok" }
+    })
+
+    render(<Dashboard />)
+
+    fireEvent.change(screen.getAllByRole("textbox", { name: "Search mail, sender or subject" })[0], {
+      target: { value: "Google" }
+    })
+
+    await waitFor(() => expect(screen.getByTestId("mail-list")).toHaveTextContent("Google Workspace"))
+    expect(screen.getByTestId("mail-list")).not.toHaveTextContent("Ada Lovelace")
+    expect(screen.getByTestId("mail-list")).not.toHaveTextContent("Slack")
+    expect(screen.getByTestId("mail-list")).not.toHaveTextContent("Notion")
+
+    fireEvent.change(screen.getAllByRole("textbox", { name: "Search mail, sender or subject" })[0], {
+      target: { value: "xyzzy123" }
+    })
+
+    await waitFor(() => expect(screen.getByTestId("mail-list")).toHaveTextContent("No matches found"))
   })
 })
