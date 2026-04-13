@@ -52,32 +52,6 @@ vi.mock("@tanstack/react-query", () => ({
     if (queryKey[0] === "labels") {
       return { data: { labels: [] } }
     }
-    if (queryKey[0] === "emails-search") {
-      const searchTerm = String(queryKey[5] || "").toLowerCase()
-      if (searchTerm.includes("google")) {
-        return {
-          data: {
-            emails: [
-              {
-                id: "mail-2",
-                sender_name: "Google Workspace",
-                sender_email: "no-reply@google.com",
-                subject: "Welcome to Google",
-                preview_snippet: "Google account setup is complete",
-                received_at: "2026-04-10T12:00:00.000Z",
-                is_read: true,
-                is_starred: false,
-                account_email: "test@example.com"
-              }
-            ]
-          },
-          isFetching: false,
-          isError: false,
-          error: null
-        }
-      }
-      return { data: { emails: [] }, isFetching: false, isError: false, error: null }
-    }
     if (queryKey[0] === "email") {
       return {
         data: {
@@ -247,41 +221,16 @@ describe("Dashboard", () => {
   })
 
   it("filters the mail list as the search query changes", async () => {
-    vi.mocked(apiFetch).mockImplementation(async (path: string) => {
-      if (path.startsWith("/search?")) {
-        const params = new URLSearchParams(path.split("?")[1] || "")
-        const q = params.get("q") || ""
-        if (q.toLowerCase().includes("google")) {
-          return {
-            emails: [
-              {
-                id: "mail-2",
-                sender_name: "Google Workspace",
-                sender_email: "no-reply@google.com",
-                subject: "Welcome to Google",
-                preview_snippet: "Google account setup is complete",
-                received_at: "2026-04-10T12:00:00.000Z",
-                is_read: true,
-                is_starred: false,
-                account_email: "test@example.com"
-              }
-            ]
-          }
-        }
-        return { emails: [] }
-      }
-      return { status: "ok" }
-    })
+    vi.mocked(apiFetch).mockResolvedValue({ status: "ok" })
 
     render(<Dashboard />)
 
     fireEvent.change(screen.getAllByRole("textbox", { name: "Search mail, sender or subject" })[0], {
-      target: { value: "Google" }
+      target: { value: "Slack" }
     })
 
-    await waitFor(() => expect(screen.getByTestId("mail-list")).toHaveTextContent("Google Workspace"))
+    await waitFor(() => expect(screen.getByTestId("mail-list")).toHaveTextContent("Slack"))
     expect(screen.getByTestId("mail-list")).not.toHaveTextContent("Ada Lovelace")
-    expect(screen.getByTestId("mail-list")).not.toHaveTextContent("Slack")
     expect(screen.getByTestId("mail-list")).not.toHaveTextContent("Notion")
 
     fireEvent.change(screen.getAllByRole("textbox", { name: "Search mail, sender or subject" })[0], {

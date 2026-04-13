@@ -14,7 +14,6 @@ export function Dashboard() {
   const [composeInitialData, setComposeInitialData] = useState<any | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [mailSearchQuery, setMailSearchQuery] = useState("")
-  const [debouncedMailSearchQuery, setDebouncedMailSearchQuery] = useState("")
   const [syncing, setSyncing] = useState(false)
   const queryClient = useQueryClient()
   const syncHandledRef = useRef(false)
@@ -60,11 +59,6 @@ export function Dashboard() {
     if (!activeAccountId || linkedAccounts.some((account: any) => account.id === activeAccountId)) return
     setState({ activeAccountId: null, selectedEmailId: null })
   }, [activeAccountId, linkedAccounts, setState])
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => setDebouncedMailSearchQuery(mailSearchQuery.trim()), 250)
-    return () => window.clearTimeout(timeout)
-  }, [mailSearchQuery])
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -123,12 +117,6 @@ export function Dashboard() {
   }
   if (activeFilter !== "all" && activeFilter !== "drafts") listParams.set("filter", activeFilter)
   if (activeLabelId) listParams.set("label_id", activeLabelId)
-  const hasMailSearchQuery = debouncedMailSearchQuery.length > 0
-  const searchParams = new URLSearchParams(listParams)
-  if (hasMailSearchQuery) {
-    searchParams.set("q", debouncedMailSearchQuery)
-    searchParams.set("limit", "100")
-  }
 
   const { data: emailsData, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["emails", activeAccountId, activeCategory, activeFilter, activeLabelId],
@@ -140,23 +128,11 @@ export function Dashboard() {
       return apiFetch(`/emails?${pageParams.toString()}`)
     },
     getNextPageParam: (lastPage: any) => lastPage?.next_offset ?? undefined,
-    enabled: activeFilter !== "drafts" && !hasMailSearchQuery
-  })
-
-  const {
-    data: searchData,
-    isFetching: isSearchingMail,
-    isError: isSearchError,
-    error: searchError
-  } = useQuery({
-    queryKey: ["emails-search", activeAccountId, activeCategory, activeFilter, activeLabelId, debouncedMailSearchQuery],
-    queryFn: () => apiFetch(`/search?${searchParams.toString()}`),
-    enabled: activeFilter !== "drafts" && hasMailSearchQuery
+    enabled: activeFilter !== "drafts"
   })
 
   const invalidateMailQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["emails"] })
-    queryClient.invalidateQueries({ queryKey: ["emails-search"] })
   }
 
   const { data: draftsData } = useQuery({
@@ -179,9 +155,25 @@ export function Dashboard() {
           account_email: ""
         }))
       : emailsData?.pages?.flatMap((page: any) => page.emails || []) || []
-  const searchEmails = searchData?.emails || []
+  const normalizedMailSearchQuery = mailSearchQuery.trim().toLowerCase()
   const visibleEmails =
-    activeFilter === "drafts" ? emails : hasMailSearchQuery ? searchEmails : emails
+    activeFilter === "drafts" || !normalizedMailSearchQuery
+      ? emails
+      : emails.filter((email: any) => {
+          const searchableFields = [
+            email.sender_name,
+            email.sender_email,
+            email.subject,
+            email.preview_snippet,
+            email.account_email
+          ]
+
+          return searchableFields.some((field) =>
+            String(field || "")
+              .toLowerCase()
+              .includes(normalizedMailSearchQuery)
+          )
+        })
 
   const { data: emailDetail } = useQuery({
     queryKey: ["email", selectedEmailId],
@@ -360,28 +352,12 @@ export function Dashboard() {
     accountOptions.find((account) => account.id === (activeAccountId || "all")) || accountOptions[0]
   const syncAnnouncement = syncing ? "Syncing mailbox" : "Mail sync ready"
   const detailOpen = Boolean(selectedEmailId)
-  const isMailSearchActive = activeFilter !== "drafts" && hasMailSearchQuery
-  const searchErrorMessage = searchError instanceof Error ? searchError.message : "Search failed"
-  const mailListEmptyState = isMailSearchActive ? (
-    isSearchingMail ? (
-      <EmptyState
-        title="Searching..."
-        description={`Looking for "${debouncedMailSearchQuery}" across your mailbox.`}
-        shortcutHint="Typing is debounced by 250ms"
-      />
-    ) : isSearchError ? (
-      <EmptyState
-        title="Search failed"
-        description={searchErrorMessage}
-        shortcutHint="Try again in a moment"
-      />
-    ) : (
-      <EmptyState
-        title="No matches found"
-        description={`No mail matches "${debouncedMailSearchQuery}". Try sender, subject, or email.`}
-        shortcutHint="Clear the search to see all mail"
-      />
-    )
+  const mailListEmptyState = normalizedMailSearchQuery ? (
+    <EmptyState
+      title="No matches found"
+      description={`No mail matches "${mailSearchQuery.trim()}". Try sender, subject, or email.`}
+      shortcutHint="Clear the search to see all mail"
+    />
   ) : (
     <EmptyState
       title="No mail to show"
