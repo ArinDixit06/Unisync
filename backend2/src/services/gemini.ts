@@ -10,6 +10,8 @@ let circuitOpenUntil = 0;
 const ALLOWED_PRIORITIES = new Set(["high", "medium", "low"]);
 const ALLOWED_RISKS = new Set(["high", "medium", "low"]);
 const ALLOWED_CATEGORIES = new Set(["primary", "updates", "promotions", "social", "forums"]);
+const DEFAULT_FLASH_MODEL = "gemini-2.5-flash";
+const FLASH_MODEL_FALLBACKS = [DEFAULT_FLASH_MODEL, "gemini-2.5-flash-lite", "gemini-2.0-flash"];
 
 function ensureClient(): GoogleGenerativeAI {
   if (!client) client = new GoogleGenerativeAI(settings.geminiApiKey);
@@ -69,7 +71,25 @@ async function callJson(modelName: string, prompt: string): Promise<any> {
 }
 
 function flashModel(): string {
-  return settings.geminiModel ?? "gemini-1.5-flash";
+  return settings.geminiModel ?? DEFAULT_FLASH_MODEL;
+}
+
+function flashModelCandidates(): string[] {
+  const preferred = flashModel().trim();
+  const ordered = [preferred, ...FLASH_MODEL_FALLBACKS];
+  return [...new Set(ordered.filter(Boolean))];
+}
+
+async function callJsonWithFallbacks(modelNames: string[], prompt: string): Promise<any> {
+  let lastError: unknown = null;
+  for (const modelName of modelNames) {
+    try {
+      return await callJson(modelName, prompt);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError ?? new Error("Gemini request failed");
 }
 
 export async function summarizeEmail(text: string): Promise<string[] | null> {
@@ -171,7 +191,7 @@ export async function emailInsights(
     `USER QUESTION: ${boundedQuestion}`;
 
   try {
-    const data = await callJson(flashModel(), prompt);
+    const data = await callJsonWithFallbacks(flashModelCandidates(), prompt);
     if (!data || typeof data !== "object" || Array.isArray(data)) {
       return {
         answer: "Could not parse AI response.",

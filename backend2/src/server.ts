@@ -31,7 +31,9 @@ const corsOptions = {
   credentials: true,
   methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"] as string[],
   allowedHeaders: ["Authorization", "Content-Type"] as string[],
-  optionsSuccessStatus: 204
+  // Keep preflight responses bodyless but use 200 so clients and proxies do not
+  // misread the preflight as a failed "204 no content" request.
+  optionsSuccessStatus: 200
 };
 
 configureLogging();
